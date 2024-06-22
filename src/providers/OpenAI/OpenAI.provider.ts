@@ -11,7 +11,7 @@ export class OpenAIProvider implements IProvider {
 
   constructor(config: BaseGPTConfig, providerName?: string) {
     if (!isOpenAIConfig(config)) {
-      throw new Error('Invalid configuration for YandexGPTProvider');
+      throw new Error('Invalid configuration for OpenAIProvider');
     }
     this.config = config;
     this.providerName = providerName;

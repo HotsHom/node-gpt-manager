@@ -5,5 +5,5 @@ export type OpenAIConfig = BaseGPTConfig & {
 };
 
 export const isOpenAIConfig = (config: BaseGPTConfig): config is OpenAIConfig => {
-  return 'identifier' in config && 'openKeyIdentifier' in config;
+  return 'openAiApiKey' in config;
 };
