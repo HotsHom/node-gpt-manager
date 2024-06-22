@@ -9,14 +9,15 @@ export default {
     {
       file: 'dist/bundle.cjs.js',
       format: 'cjs',
+      exports: 'named',
       sourcemap: true,
     },
     {
       file: 'dist/bundle.esm.js',
       format: 'es',
+      exports: 'named',
       sourcemap: true,
     },
   ],
   plugins: [resolve(), commonjs(), typescript(), json()],
-  external: ['node_modules/**'],
 };
