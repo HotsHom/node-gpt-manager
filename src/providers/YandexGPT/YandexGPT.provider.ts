@@ -6,6 +6,7 @@ import { BaseGPTConfig } from '../../types/GPTConfig';
 import { clearTimeout } from 'node:timers';
 import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
 import axios from 'axios';
+import * as fs from "fs";
 
 export class YandexGPTProvider implements IProvider {
   private readonly config: YandexGPTConfig;
@@ -67,4 +68,10 @@ export class YandexGPTProvider implements IProvider {
   completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
     return Promise.resolve(request.toString());
   }
+
+  isOnline(): boolean {
+    return false;
+  }
+
+
 }

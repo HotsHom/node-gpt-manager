@@ -17,4 +17,6 @@ export interface IProvider {
    * @returns A promise that resolves to the generated text or throws an error.
    */
   completion(request: GPTRequest): Promise<GPTMessageEntity | string>;
+
+  isOnline(): boolean;
 }

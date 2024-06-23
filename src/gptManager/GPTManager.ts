@@ -5,6 +5,7 @@ import { IProvider } from '../providers/IProvider.interface';
 import { IStrategy } from '../strategies/IStrategy.interfrace';
 import { FirstSuccessStrategy } from '../strategies/FirstSuccess.strategy';
 import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
+import {GPTManager} from "../../dist";
 
 /**
  * Manager class responsible for managing GPT providers and configurations.
@@ -114,5 +115,13 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
 
   completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
     return this.strategy.completion(request);
+  }
+
+  getOnlineProviders(): boolean {
+    // return this.gptProviders.forEach(value => value.isOnline())
+    // return {
+    //   [key in TGPTNames]: this.gptProviders.get(key)?.isOnline()
+    // }
+    return false
   }
 }

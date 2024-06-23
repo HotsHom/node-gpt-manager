@@ -27,4 +27,6 @@ export interface IGPTManager<TGPTNames extends string> {
   setStrategy(newStrategy: IStrategy): void;
 
   completion(request: GPTRequest): Promise<GPTMessageEntity | string>;
+
+  getOnlineProviders(): boolean
 }

@@ -2,6 +2,7 @@ import { BaseGPTConfig } from '../../types/GPTConfig';
 import { GigaChatConfig, isGigaChatConfig } from './types';
 import { IProvider } from '../IProvider.interface';
 import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
+import {GigaChatProvider} from "../../../dist";
 
 export class GigaChatProvider implements IProvider {
   static ConfigType: GigaChatConfig;
@@ -27,5 +28,9 @@ export class GigaChatProvider implements IProvider {
 
   completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
     return Promise.resolve(request.toString());
+  }
+
+  isOnline(): boolean {
+    return false;
   }
 }

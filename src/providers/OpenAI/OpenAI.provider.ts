@@ -50,4 +50,10 @@ export class OpenAIProvider implements IProvider {
     });
     return data.choices[0].message;
   }
+
+  isOnline(): boolean {
+    return false;
+  }
+
+
 }
