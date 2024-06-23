@@ -1,4 +1,4 @@
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
 
 /**
  * Interface for defining GPT providers.
@@ -16,7 +16,7 @@ export interface IProvider {
    * @param request - The request to be sent to the GPT models.
    * @returns A promise that resolves to the generated text or throws an error.
    */
-  completion(request: GPTRequest): Promise<GPTMessageEntity | string>;
+  completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
 
-  isOnline(): boolean;
+  isOnline(): Promise<boolean>;
 }

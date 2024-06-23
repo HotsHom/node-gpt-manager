@@ -7,12 +7,15 @@ import { clearTimeout } from 'node:timers';
 import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
 import axios from 'axios';
 import * as fs from "fs";
+import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../../types/GPTRequestTypes';
+import axios, { AxiosInstance } from 'axios';
 
 export class YandexGPTProvider implements IProvider {
   private readonly config: YandexGPTConfig;
   private readonly providerName?: string;
   private accessToken?: string;
   private updateTokenTimer?: NodeJS.Timeout;
+  private network?: AxiosInstance;
 
   constructor(config: BaseGPTConfig, providerName?: string) {
     if (!isYandexGPTConfig(config)) {
@@ -56,6 +59,7 @@ export class YandexGPTProvider implements IProvider {
         },
         1000 * 60 * 60
       );
+      this.initNetworkInstance();
       return true;
     } catch (error) {
       console.error(
@@ -65,13 +69,73 @@ export class YandexGPTProvider implements IProvider {
     }
   }
 
-  completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
-    return Promise.resolve(request.toString());
+  async completion(
+    request: GPTRequest
+  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+    try {
+      if (!this.accessToken) {
+        throw new Error('AccessToken is not initialized, call authenticate() first');
+      }
+
+      if (!this.network) {
+        throw new Error('Network is not initialized, call authenticate() first');
+      }
+
+      const gptModel = `gpt://${this.config.folderIdentifier}/yandexgpt-lite/latest`;
+      const { data } = await this.network.post('/completion', {
+        modelUri: gptModel,
+        completionOptions: {
+          stream: false, //TODO мейби добавить в интерфейс параметра чтобы сами настраивали потоковую передачу частично сгенерированного текста.
+          temperature: 0.3, //TODO мейби добавить в интерфейс параметра чтобы сами настраивали креативность ответов от 0 до 1
+          maxTokens: this.config.maxTokensCount,
+        },
+        messages: request,
+      });
+
+      return data.alternatives[0].message;
+    } catch (e) {
+      console.log(`Generating message error: ${e}`);
+      return `Generating message abort with error: ${JSON.stringify(e)}`;
+    }
   }
 
-  isOnline(): boolean {
-    return false;
+  async isOnline(): Promise<boolean> {
+    try {
+      if (!this.accessToken) {
+        throw new Error('AccessToken is not initialized, call authenticate() first');
+      }
+
+      if (!this.network) {
+        throw new Error('Network is not initialized, call authenticate() first');
+      }
+
+      /*
+        TODO не нашел апи метода на просмотр моделей в доке
+        const {data} = await this.network.get();
+        return !!data;
+      */
+
+      return true;
+    } catch (e) {
+      console.log(`Connection error ${e}`);
+      return false;
+    }
   }
 
+  private initNetworkInstance() {
+    if (this.network) {
+      return;
+    }
+    if (!this.accessToken) {
+      throw new Error('AccessToken is not initialized, call authenticate() first');
+    }
 
+    this.network = axios.create({
+      baseURL: 'https://llm.api.cloud.yandex.net/foundationModels/v1',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  }
 }

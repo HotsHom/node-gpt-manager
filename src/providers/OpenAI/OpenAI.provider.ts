@@ -41,19 +41,31 @@ export class OpenAIProvider implements IProvider {
   }
 
   async completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
-    if (!this.network) {
-      throw new Error('Network is not initialized, call authenticate() first');
+    try {
+      if (!this.network) {
+        throw new Error('Network is not initialized, call authenticate() first');
+      }
+      const { data } = await this.network.post('/chat/completions', {
+        model: 'gpt-4o',
+        messages: request,
+      });
+      return data.choices[0].message;
+    } catch (e) {
+      return `Generating message abort with error: ${JSON.stringify(e)}`;
     }
-    const { data } = await this.network.post('/chat/completions', {
-      model: 'gpt-4o',
-      messages: request,
-    });
-    return data.choices[0].message;
   }
 
-  isOnline(): boolean {
-    return false;
+  async isOnline(): Promise<boolean> {
+    try {
+      if (!this.network) {
+        throw new Error('Network is not initialized, call authenticate() first');
+      }
+
+      const { data } = await this.network.get('/models');
+      return !!data.object;
+    } catch (e) {
+      console.log(`Connection service error ${e}`);
+      return false;
+    }
   }
-
-
 }
