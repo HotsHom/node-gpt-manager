@@ -113,7 +113,7 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
   }
 
   completion(request: GPTRequest, finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
-    return this.strategy.completion(request);
+    return this.strategy.completion(request, finishCallback);
   }
 
   getOnlineProviders(): boolean {
