@@ -46,7 +46,7 @@ export class OpenAIProvider implements IProvider {
         throw new Error('Network is not initialized, call authenticate() first');
       }
       const { data } = await this.network.post('/chat/completions', {
-        model: 'gpt-4o',
+        model: this.config.model ?? 'gpt-4o',
         messages: request,
       });
       return data.choices[0].message;

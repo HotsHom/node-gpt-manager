@@ -1,5 +1,5 @@
 import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
+import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
 import { IStrategy } from './IStrategy.interfrace';
 
 /**
@@ -36,7 +36,7 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
    * @param request - The request to be sent to the GPT models.
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
-  async completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
+  async completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
     const sortedProviders = Array.from(this.manager.getProvidersWithNamesMap().entries())
       .sort((a, b) => {
         const priorityA = this.priorities[a[0]] || 0;

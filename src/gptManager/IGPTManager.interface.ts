@@ -1,7 +1,7 @@
 import { BaseGPTConfig } from '../types/GPTConfig';
 import { IProvider } from '../providers/IProvider.interface';
 import { IStrategy } from '../strategies/IStrategy.interfrace';
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
+import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
 
 /**
  * Interface for managing GPT providers and configurations.
@@ -26,7 +26,7 @@ export interface IGPTManager<TGPTNames extends string> {
 
   setStrategy(newStrategy: IStrategy): void;
 
-  completion(request: GPTRequest): Promise<GPTMessageEntity | string>;
+  completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
 
   getOnlineProviders(): boolean
 }

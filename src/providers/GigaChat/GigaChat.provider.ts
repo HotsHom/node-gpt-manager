@@ -2,7 +2,6 @@ import { BaseGPTConfig } from '../../types/GPTConfig';
 import { GigaChatConfig, isGigaChatConfig } from './types';
 import { IProvider } from '../IProvider.interface';
 import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
-import {GigaChatProvider} from "../../../dist";
 import axios, { AxiosInstance } from 'axios';
 import uuid4 from 'uuid4';
 

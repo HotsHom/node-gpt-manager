@@ -4,9 +4,6 @@ import { IProvider } from '../IProvider.interface';
 import { isYandexGPTConfig, YandexGPTConfig } from './types';
 import { BaseGPTConfig } from '../../types/GPTConfig';
 import { clearTimeout } from 'node:timers';
-import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
-import axios from 'axios';
-import * as fs from "fs";
 import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../../types/GPTRequestTypes';
 import axios, { AxiosInstance } from 'axios';
 

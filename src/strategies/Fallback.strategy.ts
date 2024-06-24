@@ -1,5 +1,5 @@
 import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
+import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
 import { IStrategy } from './IStrategy.interfrace';
 
 /**
@@ -10,8 +10,8 @@ import { IStrategy } from './IStrategy.interfrace';
 export class FallbackStrategy<TGPTNames extends string> implements IStrategy {
   NAME: string = 'Fallback';
 
-  private primaryModelName: TGPTNames;
-  private fallbackModelNames: TGPTNames[];
+  private readonly primaryModelName: TGPTNames;
+  private readonly fallbackModelNames: TGPTNames[];
 
   /**
    * Constructs a new FallbackStrategy.
@@ -35,7 +35,7 @@ export class FallbackStrategy<TGPTNames extends string> implements IStrategy {
    * @param request - The request to be sent to the GPT models.
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
-  async completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
+  async completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
     const models = [this.primaryModelName, ...this.fallbackModelNames];
 
     for (const gptName of models) {
