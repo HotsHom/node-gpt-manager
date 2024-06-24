@@ -1,7 +1,7 @@
 import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
 import { IStrategy } from './IStrategy.interfrace';
-import {BaseGPTConfig} from "../types/GPTConfig";
+import { BaseGPTConfig } from '../types/GPTConfig';
 
 /**
  * Configuration for the priority of each GPT provider.
@@ -38,12 +38,15 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
    * @param finishCallback
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
-  async completion(request: GPTRequest, finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  async completion(
+    request: GPTRequest,
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void
+  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
     const sortedProviders = Array.from(this.manager.getProvidersWithNamesMap().entries())
       .sort((a, b) => {
         const priorityA = this.priorities[a[0]] || 0;
         const priorityB = this.priorities[b[0]] || 0;
-        return priorityB - priorityA;
+        return priorityA - priorityB;
       })
       .map(entry => entry[0]);
 
