@@ -3,6 +3,7 @@ import { BaseGPTConfig } from '../../types/GPTConfig';
 import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
 import { isOpenAIConfig, OpenAIConfig } from './types';
 import axios, { AxiosInstance } from 'axios';
+import {YandexGPTConfig} from "../YandexGPT/types";
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
@@ -19,6 +20,10 @@ export class OpenAIProvider implements IProvider {
 
   async init(): Promise<boolean> {
     return true;
+  }
+
+  getConfig(): OpenAIConfig {
+    return this.config;
   }
 
   async authenticate(): Promise<boolean> {

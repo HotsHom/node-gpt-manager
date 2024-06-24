@@ -1,4 +1,5 @@
 import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
+import {BaseGPTConfig} from "../types/GPTConfig";
 
 /**
  * Interface for defining GPT providers.
@@ -19,4 +20,6 @@ export interface IProvider {
   completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
 
   isOnline(): Promise<boolean>;
+
+  getConfig(): BaseGPTConfig;
 }

@@ -1,6 +1,7 @@
 import { IGPTManager } from '../gptManager/IGPTManager.interface';
 import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
 import { IStrategy } from './IStrategy.interfrace';
+import {BaseGPTConfig} from "../types/GPTConfig";
 
 /**
  * Strategy that attempts to use a primary GPT provider and falls back to others if it fails.
@@ -33,9 +34,10 @@ export class FallbackStrategy<TGPTNames extends string> implements IStrategy {
    * Attempts to generate text using the primary GPT provider, and falls back to other providers if the primary fails.
    *
    * @param request - The request to be sent to the GPT models.
+   * @param finishCallback
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
-  async completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  async completion(request: GPTRequest, finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
     const models = [this.primaryModelName, ...this.fallbackModelNames];
 
     for (const gptName of models) {
@@ -43,6 +45,7 @@ export class FallbackStrategy<TGPTNames extends string> implements IStrategy {
         const provider = this.manager.getGPTProvider(gptName);
         const response = await provider.completion(request);
         if (response) {
+          finishCallback && finishCallback(provider.getConfig(), gptName);
           return response;
         }
       } catch (error) {

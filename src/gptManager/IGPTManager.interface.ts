@@ -26,7 +26,7 @@ export interface IGPTManager<TGPTNames extends string> {
 
   setStrategy(newStrategy: IStrategy): void;
 
-  completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
+  completion(request: GPTRequest, finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
 
   getOnlineProviders(): boolean
 }

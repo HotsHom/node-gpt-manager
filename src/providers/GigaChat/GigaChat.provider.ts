@@ -4,15 +4,15 @@ import { IProvider } from '../IProvider.interface';
 import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
 import axios, { AxiosInstance } from 'axios';
 import uuid4 from 'uuid4';
+import {OpenAIConfig} from "../OpenAI/types";
 
 export class GigaChatProvider implements IProvider {
-  static ConfigType: GigaChatConfig;
+  static readonly ConfigType: GigaChatConfig;
+  private readonly config: GigaChatConfig;
   private readonly providerName?: string;
   private network?: AxiosInstance;
   private accessToken?: string;
   private updateTokenTimer?: NodeJS.Timeout;
-
-  protected readonly config: typeof GigaChatProvider.ConfigType | undefined;
 
   constructor(config: BaseGPTConfig, providerName?: string) {
     if (!isGigaChatConfig(config)) {
@@ -20,6 +20,10 @@ export class GigaChatProvider implements IProvider {
     }
     this.config = config;
     this.providerName = providerName;
+  }
+
+  getConfig(): GigaChatConfig {
+    return this.config;
   }
 
   async authenticate(): Promise<boolean> {

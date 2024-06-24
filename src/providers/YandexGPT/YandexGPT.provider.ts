@@ -26,6 +26,10 @@ export class YandexGPTProvider implements IProvider {
     return true;
   }
 
+  getConfig(): YandexGPTConfig {
+    return this.config;
+  }
+
   async authenticate(): Promise<boolean> {
     try {
       if (this.updateTokenTimer) {
