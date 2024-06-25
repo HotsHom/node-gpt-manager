@@ -18,5 +18,5 @@ export interface IProvider {
    */
   completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
 
-  isOnline(): Promise<boolean>;
+  isAvailable(): Promise<boolean>;
 }

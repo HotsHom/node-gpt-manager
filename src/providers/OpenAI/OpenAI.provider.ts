@@ -55,8 +55,9 @@ export class OpenAIProvider implements IProvider {
     }
   }
 
-  async isOnline(): Promise<boolean> {
+  async isAvailable(): Promise<boolean> {
     try {
+      await this.authenticate();
       if (!this.network) {
         throw new Error('Network is not initialized, call authenticate() first');
       }

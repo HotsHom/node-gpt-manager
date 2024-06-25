@@ -4,7 +4,8 @@ import { IGPTManager } from './IGPTManager.interface';
 import { IProvider } from '../providers/IProvider.interface';
 import { IStrategy } from '../strategies/IStrategy.interfrace';
 import { FirstSuccessStrategy } from '../strategies/FirstSuccess.strategy';
-import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
+import { AvailableModelsType } from '../constants/types';
 
 /**
  * Manager class responsible for managing GPT providers and configurations.
@@ -116,11 +117,13 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
     return this.strategy.completion(request);
   }
 
-  getOnlineProviders(): boolean {
-    // return this.gptProviders.forEach(value => value.isOnline())
-    // return {
-    //   [key in TGPTNames]: this.gptProviders.get(key)?.isOnline()
-    // }
-    return false
+  async getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>[]> {
+    const availableModels: AvailableModelsType<TGPTNames>[] = [];
+    for (const [gptName, provider] of this.gptProviders) {
+      availableModels.push({
+        [gptName]: await provider.isAvailable(),
+      } as AvailableModelsType<TGPTNames>);
+    }
+    return availableModels;
   }
 }
