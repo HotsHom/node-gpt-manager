@@ -4,7 +4,7 @@ import { IGPTManager } from './IGPTManager.interface';
 import { IProvider } from '../providers/IProvider.interface';
 import { IStrategy } from '../strategies/IStrategy.interfrace';
 import { FirstSuccessStrategy } from '../strategies/FirstSuccess.strategy';
-import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
 
 /**
  * Manager class responsible for managing GPT providers and configurations.
@@ -112,7 +112,10 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
     this.strategy = newStrategy;
   }
 
-  completion(request: GPTRequest, finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  completion(
+    request: GPTRequest,
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
+  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
     return this.strategy.completion(request, finishCallback);
   }
 
@@ -121,6 +124,6 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
     // return {
     //   [key in TGPTNames]: this.gptProviders.get(key)?.isOnline()
     // }
-    return false
+    return false;
   }
 }

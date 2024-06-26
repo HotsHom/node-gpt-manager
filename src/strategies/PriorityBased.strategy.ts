@@ -40,7 +40,7 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
    */
   async completion(
     request: GPTRequest,
-    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
   ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
     const sortedProviders = Array.from(this.manager.getProvidersWithNamesMap().entries())
       .sort((a, b) => {
@@ -55,7 +55,7 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
         const provider = this.manager.getGPTProvider(gptName);
         const response = await provider.completion(request);
         if (response) {
-          finishCallback && finishCallback(provider.getConfig(), gptName);
+          finishCallback && (await finishCallback(provider.getConfig(), gptName));
           return response;
         }
       } catch (error) {

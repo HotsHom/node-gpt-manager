@@ -1,5 +1,5 @@
-import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
-import {BaseGPTConfig} from "../types/GPTConfig";
+import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
+import { BaseGPTConfig } from '../types/GPTConfig';
 
 /**
  * Interface for defining strategies for generating text using GPT models.
@@ -16,5 +16,8 @@ export interface IStrategy {
    * @param finishCallback
    * @returns A promise that resolves to the generated text or throws an error.
    */
-  completion(request: GPTRequest, finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
+  completion(
+    request: GPTRequest,
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
+  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
 }

@@ -1,7 +1,7 @@
 import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
 import { IStrategy } from './IStrategy.interfrace';
-import {BaseGPTConfig} from "../types/GPTConfig";
+import { BaseGPTConfig } from '../types/GPTConfig';
 
 /**
  * Strategy that attempts to get a response from the first GPT model that successfully generates text.
@@ -25,13 +25,16 @@ export class FirstSuccessStrategy<TGPTNames extends string> implements IStrategy
    * @param finishCallback
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
-  async completion(request: GPTRequest, finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  async completion(
+    request: GPTRequest,
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
+  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
     for (const gptProviders of this.manager.getProvidersWithNamesMap()) {
       try {
         const provider = gptProviders[1];
         const response = await provider.completion(request);
         if (response) {
-          finishCallback && finishCallback(provider.getConfig(), gptProviders[0]);
+          finishCallback && (await finishCallback(provider.getConfig(), gptProviders[0]));
           return response;
         }
       } catch (error) {

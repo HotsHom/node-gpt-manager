@@ -1,7 +1,7 @@
 import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import {GPTMessageEntity, GPTRequest, YandexGPTMessageEntity} from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
 import { IStrategy } from './IStrategy.interfrace';
-import {BaseGPTConfig} from "../types/GPTConfig";
+import { BaseGPTConfig } from '../types/GPTConfig';
 
 /**
  * Strategy that sends requests to multiple GPT providers in parallel and returns the first successful response.
@@ -26,7 +26,10 @@ export class ParallelRequestsStrategy<TGPTNames extends string> implements IStra
    * @param finishCallback
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
-  async completion(request: GPTRequest, finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => void): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  async completion(
+    request: GPTRequest,
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
+  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
     const providers = Array.from(this.manager.getProvidersWithNamesMap().entries()).map(
       async gptProviderWithName => {
         const provider = gptProviderWithName[1];
@@ -41,7 +44,7 @@ export class ParallelRequestsStrategy<TGPTNames extends string> implements IStra
 
     try {
       const result = await Promise.any(providers);
-      finishCallback && finishCallback(result.config, result.name);
+      finishCallback && (await finishCallback(result.config, result.name));
       return result.response;
     } catch (error) {
       throw new Error('All providers failed to generate text');
