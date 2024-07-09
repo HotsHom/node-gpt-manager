@@ -4,7 +4,7 @@ import { IGPTManager } from './IGPTManager.interface';
 import { IProvider } from '../providers/IProvider.interface';
 import { IStrategy } from '../strategies/IStrategy.interfrace';
 import { FirstSuccessStrategy } from '../strategies/FirstSuccess.strategy';
-import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
 import { AvailableModelsType } from '../constants/types';
 
 /**
@@ -113,7 +113,7 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
     this.strategy = newStrategy;
   }
 
-  completion(request: GPTRequest): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
     return this.strategy.completion(request);
   }
 
