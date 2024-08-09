@@ -1,4 +1,4 @@
-import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
 import { BaseGPTConfig } from '../types/GPTConfig';
 
 /**
@@ -9,6 +9,7 @@ export interface IStrategy {
    * Name of the strategy.
    */
   NAME: string;
+
   /**
    * Method that defines the completion strategy for generating text.
    *
@@ -19,5 +20,5 @@ export interface IStrategy {
   completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string>;
+  ): Promise<GPTMessageEntity | string>;
 }

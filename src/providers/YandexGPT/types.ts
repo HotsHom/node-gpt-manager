@@ -5,6 +5,7 @@ export type YandexGPTConfig = BaseGPTConfig & {
   openKeyIdentifier: string;
   certificatePath: string;
   folderIdentifier: string;
+  temperature: number;
 };
 
 export const isYandexGPTConfig = (config: BaseGPTConfig): config is YandexGPTConfig => {

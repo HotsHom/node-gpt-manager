@@ -1,11 +1,11 @@
 import { JWK, JWS } from 'node-jose';
-import fs from 'fs';
 import { IProvider } from '../IProvider.interface';
 import { isYandexGPTConfig, YandexGPTConfig } from './types';
 import { BaseGPTConfig } from '../../types/GPTConfig';
 import { clearTimeout } from 'node:timers';
-import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
 import axios, { AxiosInstance } from 'axios';
+import * as fs from 'fs';
 
 export class YandexGPTProvider implements IProvider {
   private readonly config: YandexGPTConfig;
@@ -70,9 +70,7 @@ export class YandexGPTProvider implements IProvider {
     }
   }
 
-  async completion(
-    request: GPTRequest
-  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  async completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
     try {
       if (!this.accessToken) {
         throw new Error('AccessToken is not initialized, call authenticate() first');
@@ -83,25 +81,36 @@ export class YandexGPTProvider implements IProvider {
       }
 
       const gptModel = `gpt://${this.config.folderIdentifier}/yandexgpt-lite/latest`;
+      const requestTemperature = Math.min(1, Math.max(0, this.config.temperature));
+      const updateRequest = Array.isArray(request)
+        ? request.map(message => ({
+            role: message.role,
+            text: message.content,
+          }))
+        : request;
       const { data } = await this.network.post('/completion', {
         modelUri: gptModel,
         completionOptions: {
-          stream: false, //TODO мейби добавить в интерфейс параметра чтобы сами настраивали потоковую передачу частично сгенерированного текста.
-          temperature: 0.3, //TODO мейби добавить в интерфейс параметра чтобы сами настраивали креативность ответов от 0 до 1
+          stream: false,
+          temperature: requestTemperature,
           maxTokens: this.config.maxTokensCount,
         },
-        messages: request,
+        messages: updateRequest,
       });
 
-      return data.alternatives[0].message;
+      return {
+        role: data.result.alternatives[0].message.role,
+        content: data.result.alternatives[0].message.text,
+      };
     } catch (e) {
       console.log(`Generating message error: ${e}`);
       return `Generating message abort with error: ${JSON.stringify(e)}`;
     }
   }
 
-  async isOnline(): Promise<boolean> {
+  async isAvailable(): Promise<boolean> {
     try {
+      await this.authenticate();
       if (!this.accessToken) {
         throw new Error('AccessToken is not initialized, call authenticate() first');
       }
@@ -109,14 +118,13 @@ export class YandexGPTProvider implements IProvider {
       if (!this.network) {
         throw new Error('Network is not initialized, call authenticate() first');
       }
+      const gptModel = `gpt://${this.config.folderIdentifier}/yandexgpt/latest`;
+      const { data } = await this.network.post('/tokenize', {
+        modelUri: gptModel,
+        text: 'x',
+      });
 
-      /*
-        TODO не нашел апи метода на просмотр моделей в доке
-        const {data} = await this.network.get();
-        return !!data;
-      */
-
-      return true;
+      return !!data.tokens;
     } catch (e) {
       console.log(`Connection error ${e}`);
       return false;

@@ -64,6 +64,7 @@ export class GigaChatProvider implements IProvider {
 
   async completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
     try {
+      await this.authenticate();
       if (!this.accessToken) {
         throw new Error('AccessToken is not initialized, call authenticate() first');
       }
@@ -85,7 +86,7 @@ export class GigaChatProvider implements IProvider {
     }
   }
 
-  async isOnline(): Promise<boolean> {
+  async isAvailable(): Promise<boolean> {
     try {
       if (!this.accessToken) {
         throw new Error('AccessToken is not initialized, call authenticate() first');

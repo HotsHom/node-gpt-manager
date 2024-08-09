@@ -1,5 +1,5 @@
 import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
 import { IStrategy } from './IStrategy.interfrace';
 import { BaseGPTConfig } from '../types/GPTConfig';
 
@@ -40,7 +40,7 @@ export class FallbackStrategy<TGPTNames extends string> implements IStrategy {
   async completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  ): Promise<GPTMessageEntity | string> {
     const models = [this.primaryModelName, ...this.fallbackModelNames];
 
     for (const gptName of models) {

@@ -1,5 +1,5 @@
 import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import { GPTMessageEntity, GPTRequest, YandexGPTMessageEntity } from '../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
 import { IStrategy } from './IStrategy.interfrace';
 import { BaseGPTConfig } from '../types/GPTConfig';
 
@@ -9,6 +9,7 @@ import { BaseGPTConfig } from '../types/GPTConfig';
 interface PriorityConfig {
   [gptName: string]: number;
 }
+
 /**
  * Strategy that uses GPT providers based on their priority.
  *
@@ -41,7 +42,7 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
   async completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | YandexGPTMessageEntity | string> {
+  ): Promise<GPTMessageEntity | string> {
     const sortedProviders = Array.from(this.manager.getProvidersWithNamesMap().entries())
       .sort((a, b) => {
         const priorityA = this.priorities[a[0]] || 0;
