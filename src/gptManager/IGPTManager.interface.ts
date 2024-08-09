@@ -2,6 +2,7 @@ import { IProvider } from '../providers/IProvider.interface';
 import { IStrategy } from '../strategies/IStrategy.interfrace';
 import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
 import { AvailableModelsType } from '../constants/types';
+import { BaseGPTConfig } from '../types/GPTConfig';
 
 /**
  * Interface for managing GPT providers and configurations.
