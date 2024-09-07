@@ -136,14 +136,15 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
   /**
    * Retrieves a list of available GPT providers with their respective names.
    *
-   * @returns {AvailableModelsType<TGPTNames>[]} A list of objects containing GPT provider names as keys and their availability as values.
+   * @returns {AvailableModelsType<TGPTNames>} A list of objects containing GPT provider names as keys and their availability as values.
    */
-  async getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>[]> {
-    const availableModels: AvailableModelsType<TGPTNames>[] = []
+  async getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>> {
+    const availableModels: AvailableModelsType<TGPTNames> = Object.create(null)
     for (const [gptName, provider] of this.gptProviders) {
-      availableModels.push({
-        [gptName]: await provider.isAvailable(),
-      } as AvailableModelsType<TGPTNames>)
+      availableModels[gptName] = {
+        isAvailable: await provider.isAvailable(),
+        extra: provider.getConfig().extra,
+      }
     }
     return availableModels
   }

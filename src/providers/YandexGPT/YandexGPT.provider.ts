@@ -80,7 +80,7 @@ export class YandexGPTProvider implements IProvider {
         throw new Error('Network is not initialized, call authenticate() first')
       }
 
-      const gptModel = `gpt://${this.config.folderIdentifier}/yandexgpt-lite/latest`
+      const gptModel = `gpt://${this.config.folderIdentifier}/yandexgpt/latest`
       const requestTemperature = Math.min(1, Math.max(0, this.config.temperature))
       const updateRequest = Array.isArray(request)
         ? request.map(message => ({

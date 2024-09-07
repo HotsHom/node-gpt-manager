@@ -33,4 +33,8 @@ export type BaseGPTConfig = {
    * Type of the GPT provider.
    */
   provider: GPTProviderType
+  /**
+   * Additional info.
+   */
+  extra?: Record<string, unknown>
 }

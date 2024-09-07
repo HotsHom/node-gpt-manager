@@ -32,5 +32,5 @@ export interface IGPTManager<TGPTNames extends string> {
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
   ): Promise<GPTMessageEntity | string>
 
-  getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>[]>
+  getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>>
 }

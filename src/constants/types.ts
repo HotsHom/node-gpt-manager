@@ -1,5 +1,6 @@
 export type AvailableModelsType<TGPTNames extends string> = {
-  [key in TGPTNames]: boolean
+  [key in TGPTNames]: {
+    isAvailable: boolean
+    extra?: Record<string, unknown>
+  }
 }
-
-export type ZeroToOne = number & { __type: 'ZeroToOne' }
