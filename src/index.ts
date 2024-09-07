@@ -39,27 +39,27 @@
 //   ]);
 // }
 
-export { GPTManager } from './gptManager/GPTManager';
-export { IGPTManager } from './gptManager/IGPTManager.interface';
+export { GPTManager } from './gptManager/GPTManager'
+export { IGPTManager } from './gptManager/IGPTManager.interface'
 
-export { GPTRequest } from './types/GPTRequestTypes';
-export { GPTRoles } from './constants/GPTRoles';
-export { GPTProviderType, GPTProviderClassMapType } from './constants/GPTProviderClassMapType';
-export { BaseGPTConfig, GPTConfigsInitType } from './types/GPTConfig';
+export { GPTRequest } from './types/GPTRequestTypes'
+export { GPTRoles } from './constants/GPTRoles'
+export { GPTProviderType, GPTProviderClassMapType } from './constants/GPTProviderClassMapType'
+export { BaseGPTConfig, GPTConfigsInitType } from './types/GPTConfig'
 
-export { IStrategy } from './strategies/IStrategy.interfrace';
-export { FallbackStrategy } from './strategies/Fallback.strategy';
-export { ParallelRequestsStrategy } from './strategies/ParallelRequests.strategy';
-export { FirstSuccessStrategy } from './strategies/FirstSuccess.strategy';
-export { PriorityBasedStrategy } from './strategies/PriorityBased.strategy';
+export { IStrategy } from './strategies/IStrategy.interfrace'
+export { FallbackStrategy } from './strategies/Fallback.strategy'
+export { ParallelRequestsStrategy } from './strategies/ParallelRequests.strategy'
+export { FirstSuccessStrategy } from './strategies/FirstSuccess.strategy'
+export { PriorityBasedStrategy } from './strategies/PriorityBased.strategy'
 
-export { IProvider } from './providers/IProvider.interface';
+export { IProvider } from './providers/IProvider.interface'
 
-export { YandexGPTProvider } from './providers/YandexGPT/YandexGPT.provider';
-export * as YandexGPTProviderTypes from './providers/YandexGPT/YandexGPT.provider';
+export { YandexGPTProvider } from './providers/YandexGPT/YandexGPT.provider'
+export * as YandexGPTProviderTypes from './providers/YandexGPT/YandexGPT.provider'
 
-export { GigaChatProvider } from './providers/GigaChat/GigaChat.provider';
-export * as GigaChatProviderTypes from './providers/GigaChat/types';
+export { GigaChatProvider } from './providers/GigaChat/GigaChat.provider'
+export * as GigaChatProviderTypes from './providers/GigaChat/types'
 
-export { OpenAIProvider } from './providers/OpenAI/OpenAI.provider';
-export * as OpenAIProviderTypes from './providers/OpenAI/types';
+export { OpenAIProvider } from './providers/OpenAI/OpenAI.provider'
+export * as OpenAIProviderTypes from './providers/OpenAI/types'

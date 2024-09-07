@@ -1,13 +1,13 @@
-import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
-import { IStrategy } from './IStrategy.interfrace';
-import { BaseGPTConfig } from '../types/GPTConfig';
+import { IGPTManager } from '../gptManager/IGPTManager.interface'
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes'
+import { IStrategy } from './IStrategy.interfrace'
+import { BaseGPTConfig } from '../types/GPTConfig'
 
 /**
  * Configuration for the priority of each GPT provider.
  */
 interface PriorityConfig {
-  [gptName: string]: number;
+  [gptName: string]: number
 }
 
 /**
@@ -16,8 +16,8 @@ interface PriorityConfig {
  * @template TGPTNames - Type of GPT provider names.
  */
 export class PriorityBasedStrategy<TGPTNames extends string> implements IStrategy {
-  NAME: string = 'PriorityBased';
-  private priorities: PriorityConfig;
+  NAME: string = 'PriorityBased'
+  private priorities: PriorityConfig
 
   /**
    * Constructs a new PriorityBasedStrategy.
@@ -29,7 +29,7 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
     private manager: IGPTManager<TGPTNames>,
     priorities: PriorityConfig
   ) {
-    this.priorities = priorities;
+    this.priorities = priorities
   }
 
   /**
@@ -45,24 +45,24 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
   ): Promise<GPTMessageEntity | string> {
     const sortedProviders = Array.from(this.manager.getProvidersWithNamesMap().entries())
       .sort((a, b) => {
-        const priorityA = this.priorities[a[0]] || 0;
-        const priorityB = this.priorities[b[0]] || 0;
-        return priorityA - priorityB;
+        const priorityA = this.priorities[a[0]] || 0
+        const priorityB = this.priorities[b[0]] || 0
+        return priorityA - priorityB
       })
-      .map(entry => entry[0]);
+      .map(entry => entry[0])
 
     for (const gptName of sortedProviders) {
       try {
-        const provider = this.manager.getGPTProvider(gptName);
-        const response = await provider.completion(request);
+        const provider = this.manager.getGPTProvider(gptName)
+        const response = await provider.completion(request)
         if (response) {
-          finishCallback && (await finishCallback(provider.getConfig(), gptName));
-          return response;
+          finishCallback && (await finishCallback(provider.getConfig(), gptName))
+          return response
         }
       } catch (error) {
-        console.warn(`Provider ${gptName} failed: ${error}`);
+        console.warn(`Provider ${gptName} failed: ${error}`)
       }
     }
-    throw new Error('All providers failed to generate text');
+    throw new Error('All providers failed to generate text')
   }
 }

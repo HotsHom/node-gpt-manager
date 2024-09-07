@@ -1,11 +1,11 @@
-import { BaseGPTConfig, GPTConfigsInitType } from '../types/GPTConfig';
-import { GPTProviderClassMapType } from '../constants/GPTProviderClassMapType';
-import { IGPTManager } from './IGPTManager.interface';
-import { IProvider } from '../providers/IProvider.interface';
-import { IStrategy } from '../strategies/IStrategy.interfrace';
-import { FirstSuccessStrategy } from '../strategies/FirstSuccess.strategy';
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
-import { AvailableModelsType } from '../constants/types';
+import { BaseGPTConfig, GPTConfigsInitType } from '../types/GPTConfig'
+import { GPTProviderClassMapType } from '../constants/GPTProviderClassMapType'
+import { IGPTManager } from './IGPTManager.interface'
+import { IProvider } from '../providers/IProvider.interface'
+import { IStrategy } from '../strategies/IStrategy.interfrace'
+import { FirstSuccessStrategy } from '../strategies/FirstSuccess.strategy'
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes'
+import { AvailableModelsType } from '../constants/types'
 
 /**
  * Manager class responsible for managing GPT providers and configurations.
@@ -13,10 +13,10 @@ import { AvailableModelsType } from '../constants/types';
  * @template TGPTNames - Type of GPT provider names.
  */
 export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNames> {
-  private static instance: GPTManager<any>;
-  private gptProviders: Map<TGPTNames, IProvider> = new Map();
-  private readonly providerClassMap: GPTProviderClassMapType<TGPTNames>;
-  private strategy: IStrategy;
+  private static instance: GPTManager<any>
+  private gptProviders: Map<TGPTNames, IProvider> = new Map()
+  private readonly providerClassMap: GPTProviderClassMapType<TGPTNames>
+  private strategy: IStrategy
 
   /**
    * Constructs a new GPTManager instance.
@@ -24,8 +24,8 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
    * @param providerClassMap - Map of GPT provider classes with their respective names as keys.
    */
   constructor(providerClassMap: GPTProviderClassMapType<TGPTNames>) {
-    this.providerClassMap = providerClassMap;
-    this.strategy = new FirstSuccessStrategy(this);
+    this.providerClassMap = providerClassMap
+    this.strategy = new FirstSuccessStrategy(this)
   }
 
   /**
@@ -41,24 +41,24 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
       const providers = Object.entries<BaseGPTConfig>(
         gptConfigs as { [s: string]: BaseGPTConfig }
       ).reduce((acc, [key, value]) => {
-        acc[key as TGPTNames] = value.provider;
-        return acc;
-      }, {} as GPTProviderClassMapType<TGPTNames>);
+        acc[key as TGPTNames] = value.provider
+        return acc
+      }, {} as GPTProviderClassMapType<TGPTNames>)
 
-      GPTManager.instance = new GPTManager<TGPTNames>(providers);
+      GPTManager.instance = new GPTManager<TGPTNames>(providers)
     }
 
     try {
       for (const gptName of Object.keys(gptConfigs) as TGPTNames[]) {
-        const config = gptConfigs[gptName];
-        if (!config) continue;
-        await GPTManager.instance.addProvider(gptName, config);
-        await GPTManager.instance.getGPTProvider(gptName).authenticate();
+        const config = gptConfigs[gptName]
+        if (!config) continue
+        await GPTManager.instance.addProvider(gptName, config)
+        await GPTManager.instance.getGPTProvider(gptName).authenticate()
       }
-      return GPTManager.instance;
+      return GPTManager.instance
     } catch (e) {
-      console.error(e);
-      return null;
+      console.error(e)
+      return null
     }
   }
 
@@ -68,7 +68,7 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
    * @returns The singleton instance of GPTManager.
    */
   static getInstance<TGPTNames extends string>(): GPTManager<TGPTNames> {
-    return GPTManager.instance as GPTManager<TGPTNames>;
+    return GPTManager.instance as GPTManager<TGPTNames>
   }
 
   /**
@@ -79,12 +79,12 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
    * @returns A promise that resolves to true if the provider is added successfully, false otherwise.
    */
   private async addProvider(gptName: TGPTNames, config: BaseGPTConfig): Promise<boolean> {
-    const ProviderClass = this.providerClassMap[gptName];
-    if (!ProviderClass) return false;
+    const ProviderClass = this.providerClassMap[gptName]
+    if (!ProviderClass) return false
 
-    const newProvider = new ProviderClass(config, gptName);
-    this.gptProviders.set(gptName, newProvider);
-    return true;
+    const newProvider = new ProviderClass(config, gptName)
+    this.gptProviders.set(gptName, newProvider)
+    return true
   }
 
   /**
@@ -95,9 +95,9 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
    * @throws Error if the provider with the specified name is not found.
    */
   getGPTProvider(gptName: TGPTNames): IProvider {
-    const gptProvider = this.gptProviders.get(gptName);
-    if (!gptProvider) throw new Error('GPT provider not found');
-    return gptProvider;
+    const gptProvider = this.gptProviders.get(gptName)
+    if (!gptProvider) throw new Error('GPT provider not found')
+    return gptProvider
   }
 
   /**
@@ -106,27 +106,45 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
    * @returns A map containing GPT provider instances with their names as keys.
    */
   getProvidersWithNamesMap(): Map<TGPTNames, IProvider> {
-    return this.gptProviders;
+    return this.gptProviders
   }
 
+  /**
+   * Sets the strategy for generating text using GPT models.
+   *
+   * @param {IStrategy} newStrategy - The new strategy to be set.
+   * @return {void} No return value.
+   */
   setStrategy(newStrategy: IStrategy): void {
-    this.strategy = newStrategy;
+    this.strategy = newStrategy
   }
 
+  /**
+   * Calls the completion method of the strategy with the given request and finishCallback.
+   *
+   * @param {GPTRequest} request - The request to be sent to the GPT models.
+   * @param {(gpt: BaseGPTConfig, gptName?: string) => Promise<void>} [finishCallback] - Optional callback function to be called after the completion.
+   * @return {Promise<GPTMessageEntity | string>} - A promise that resolves to the generated text or throws an error.
+   */
   completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
   ): Promise<GPTMessageEntity | string> {
-    return this.strategy.completion(request, finishCallback);
+    return this.strategy.completion(request, finishCallback)
   }
 
+  /**
+   * Retrieves a list of available GPT providers with their respective names.
+   *
+   * @returns {AvailableModelsType<TGPTNames>[]} A list of objects containing GPT provider names as keys and their availability as values.
+   */
   async getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>[]> {
-    const availableModels: AvailableModelsType<TGPTNames>[] = [];
+    const availableModels: AvailableModelsType<TGPTNames>[] = []
     for (const [gptName, provider] of this.gptProviders) {
       availableModels.push({
         [gptName]: await provider.isAvailable(),
-      } as AvailableModelsType<TGPTNames>);
+      } as AvailableModelsType<TGPTNames>)
     }
-    return availableModels;
+    return availableModels
   }
 }

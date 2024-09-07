@@ -1,7 +1,7 @@
-import { IGPTManager } from '../gptManager/IGPTManager.interface';
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
-import { IStrategy } from './IStrategy.interfrace';
-import { BaseGPTConfig } from '../types/GPTConfig';
+import { IGPTManager } from '../gptManager/IGPTManager.interface'
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes'
+import { IStrategy } from './IStrategy.interfrace'
+import { BaseGPTConfig } from '../types/GPTConfig'
 
 /**
  * Strategy that sends requests to multiple GPT providers in parallel and returns the first successful response.
@@ -9,7 +9,7 @@ import { BaseGPTConfig } from '../types/GPTConfig';
  * @template TGPTNames - Type of GPT provider names.
  */
 export class ParallelRequestsStrategy<TGPTNames extends string> implements IStrategy {
-  NAME: string = 'ParallelRequests';
+  NAME: string = 'ParallelRequests'
 
   /**
    * Constructs a new ParallelRequestsStrategy.
@@ -32,22 +32,22 @@ export class ParallelRequestsStrategy<TGPTNames extends string> implements IStra
   ): Promise<GPTMessageEntity | string> {
     const providers = Array.from(this.manager.getProvidersWithNamesMap().entries()).map(
       async gptProviderWithName => {
-        const provider = gptProviderWithName[1];
-        const response = await provider.completion(request);
+        const provider = gptProviderWithName[1]
+        const response = await provider.completion(request)
         return {
           config: provider.getConfig(),
           name: gptProviderWithName[0],
           response,
-        };
+        }
       }
-    );
+    )
 
     try {
-      const result = await Promise.any(providers);
-      finishCallback && (await finishCallback(result.config, result.name));
-      return result.response;
+      const result = await Promise.any(providers)
+      finishCallback && (await finishCallback(result.config, result.name))
+      return result.response
     } catch (error) {
-      throw new Error('All providers failed to generate text');
+      throw new Error('All providers failed to generate text')
     }
   }
 }

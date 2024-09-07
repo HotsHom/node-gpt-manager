@@ -1,5 +1,5 @@
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
-import { BaseGPTConfig } from '../types/GPTConfig';
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes'
+import { BaseGPTConfig } from '../types/GPTConfig'
 
 /**
  * Interface for defining strategies for generating text using GPT models.
@@ -8,7 +8,7 @@ export interface IStrategy {
   /**
    * Name of the strategy.
    */
-  NAME: string;
+  NAME: string
 
   /**
    * Method that defines the completion strategy for generating text.
@@ -20,5 +20,5 @@ export interface IStrategy {
   completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | string>;
+  ): Promise<GPTMessageEntity | string>
 }

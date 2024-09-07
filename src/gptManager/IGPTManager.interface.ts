@@ -1,8 +1,8 @@
-import { IProvider } from '../providers/IProvider.interface';
-import { IStrategy } from '../strategies/IStrategy.interfrace';
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
-import { AvailableModelsType } from '../constants/types';
-import { BaseGPTConfig } from '../types/GPTConfig';
+import { IProvider } from '../providers/IProvider.interface'
+import { IStrategy } from '../strategies/IStrategy.interfrace'
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes'
+import { AvailableModelsType } from '../constants/types'
+import { BaseGPTConfig } from '../types/GPTConfig'
 
 /**
  * Interface for managing GPT providers and configurations.
@@ -16,21 +16,21 @@ export interface IGPTManager<TGPTNames extends string> {
    * @param gptName - Name of the GPT provider.
    * @returns The GPT provider instance.
    */
-  getGPTProvider(gptName: TGPTNames): IProvider;
+  getGPTProvider(gptName: TGPTNames): IProvider
 
   /**
    * Retrieves a map of GPT provider instances with their respective names.
    *
    * @returns A map containing GPT provider instances with their names as keys.
    */
-  getProvidersWithNamesMap(): Map<TGPTNames, IProvider>;
+  getProvidersWithNamesMap(): Map<TGPTNames, IProvider>
 
-  setStrategy(newStrategy: IStrategy): void;
+  setStrategy(newStrategy: IStrategy): void
 
   completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | string>;
+  ): Promise<GPTMessageEntity | string>
 
-  getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>[]>;
+  getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>[]>
 }

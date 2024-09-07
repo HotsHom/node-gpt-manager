@@ -1,5 +1,5 @@
-import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
-import {BaseGPTConfig} from "../types/GPTConfig";
+import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes'
+import { BaseGPTConfig } from '../types/GPTConfig'
 
 /**
  * Interface for defining GPT providers.
@@ -10,7 +10,7 @@ export interface IProvider {
    *
    * @returns A promise that resolves to true if authentication is successful, false otherwise.
    */
-  authenticate(): Promise<boolean>;
+  authenticate(): Promise<boolean>
 
   /**
    * Method that defines the completion strategy for generating text.
@@ -18,9 +18,9 @@ export interface IProvider {
    * @param request - The request to be sent to the GPT models.
    * @returns A promise that resolves to the generated text or throws an error.
    */
-  completion(request: GPTRequest): Promise<GPTMessageEntity | string>;
+  completion(request: GPTRequest): Promise<GPTMessageEntity | string>
 
-  isAvailable(): Promise<boolean>;
+  isAvailable(): Promise<boolean>
 
-  getConfig(): BaseGPTConfig;
+  getConfig(): BaseGPTConfig
 }
