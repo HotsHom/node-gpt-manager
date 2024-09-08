@@ -6,6 +6,7 @@ import { IStrategy } from '../strategies/IStrategy.interfrace'
 import { FirstSuccessStrategy } from '../strategies/FirstSuccess.strategy'
 import { GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes'
 import { AvailableModelsType } from '../constants/types'
+import { FallbackStrategy } from '../strategies/Fallback.strategy'
 
 /**
  * Manager class responsible for managing GPT providers and configurations.
@@ -122,14 +123,40 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
   /**
    * Calls the completion method of the strategy with the given request and finishCallback.
    *
+   * This method can be called in three different ways:
+   * 1. With a request and a model name, to use a specific GPT model for completion.
+   * 2. With a request and a finish callback, to use the default strategy for completion.
+   * 3. With a request, a model name or a finish callback, and an optional finish callback.
+   *
    * @param {GPTRequest} request - The request to be sent to the GPT models.
+   * @param {TGPTNames} [model] - The name of the GPT model to use for completion.
    * @param {(gpt: BaseGPTConfig, gptName?: string) => Promise<void>} [finishCallback] - Optional callback function to be called after the completion.
    * @return {Promise<GPTMessageEntity | string>} - A promise that resolves to the generated text or throws an error.
    */
   completion(
     request: GPTRequest,
+    model: TGPTNames,
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
+  ): Promise<GPTMessageEntity | string>
+  completion(
+    request: GPTRequest,
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
+  ): Promise<GPTMessageEntity | string>
+  completion(
+    request: GPTRequest,
+    modelOrFinishCallback?: TGPTNames | ((gpt: BaseGPTConfig, gptName?: string) => Promise<void>),
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
   ): Promise<GPTMessageEntity | string> {
+    if (typeof modelOrFinishCallback === 'function') {
+      finishCallback = modelOrFinishCallback
+      modelOrFinishCallback = undefined
+    }
+
+    if (typeof modelOrFinishCallback === 'string') {
+      const fallbackStrategy = new FallbackStrategy(this, modelOrFinishCallback)
+      return fallbackStrategy.completion(request, finishCallback)
+    }
+
     return this.strategy.completion(request, finishCallback)
   }
 
