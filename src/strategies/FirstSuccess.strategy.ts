@@ -23,16 +23,18 @@ export class FirstSuccessStrategy<TGPTNames extends string> implements IStrategy
    *
    * @param request - The request to be sent to the GPT models.
    * @param finishCallback
+   * @param onStreamCallback
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
   async completion(
     request: GPTRequest,
-    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | string> {
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
+    onStreamCallback?: (chunk: string) => void
+  ): Promise<GPTMessageEntity | string | void> {
     for (const gptProviders of this.manager.getProvidersWithNamesMap()) {
       try {
         const provider = gptProviders[1]
-        const response = await provider.completion(request)
+        const response = await provider.completion(request, onStreamCallback)
         if (response) {
           finishCallback && (await finishCallback(provider.getConfig(), gptProviders[0]))
           return response

@@ -145,8 +145,9 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
   completion(
     request: GPTRequest,
     modelOrFinishCallback?: TGPTNames | ((gpt: BaseGPTConfig, gptName?: string) => Promise<void>),
-    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | string> {
+    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
+    onStreamCallback?: (chunk: string) => void
+  ): Promise<GPTMessageEntity | string | void> {
     if (typeof modelOrFinishCallback === 'function') {
       finishCallback = modelOrFinishCallback
       modelOrFinishCallback = undefined
@@ -154,10 +155,10 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
 
     if (typeof modelOrFinishCallback === 'string') {
       const fallbackStrategy = new FallbackStrategy(this, modelOrFinishCallback)
-      return fallbackStrategy.completion(request, finishCallback)
+      return fallbackStrategy.completion(request, finishCallback, onStreamCallback)
     }
 
-    return this.strategy.completion(request, finishCallback)
+    return this.strategy.completion(request, finishCallback, onStreamCallback)
   }
 
   /**

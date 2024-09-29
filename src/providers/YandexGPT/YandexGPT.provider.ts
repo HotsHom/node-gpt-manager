@@ -70,7 +70,10 @@ export class YandexGPTProvider implements IProvider {
     }
   }
 
-  async completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
+  async completion(
+    request: GPTRequest,
+    onStreamCallback?: (chunk: string) => void
+  ): Promise<GPTMessageEntity | string | void> {
     try {
       if (!this.accessToken) {
         throw new Error('AccessToken is not initialized, call authenticate() first')

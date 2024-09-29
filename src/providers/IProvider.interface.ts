@@ -16,9 +16,13 @@ export interface IProvider {
    * Method that defines the completion strategy for generating text.
    *
    * @param request - The request to be sent to the GPT models.
+   * @param onStreamCallback
    * @returns A promise that resolves to the generated text or throws an error.
    */
-  completion(request: GPTRequest): Promise<GPTMessageEntity | string>
+  completion(
+    request: GPTRequest,
+    onStreamCallback?: (chunk: string) => void
+  ): Promise<GPTMessageEntity | string | void>
 
   isAvailable(): Promise<boolean>
 

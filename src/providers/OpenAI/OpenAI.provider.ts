@@ -44,16 +44,50 @@ export class OpenAIProvider implements IProvider {
     }
   }
 
-  async completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
+  async completion(
+    request: GPTRequest,
+    onStreamCallback?: (chunk: string) => void
+  ): Promise<GPTMessageEntity | string | void> {
     try {
       if (!this.network) {
         throw new Error('Network is not initialized, call authenticate() first')
       }
-      const { data } = await this.network.post('/chat/completions', {
-        model: this.config.model ?? 'gpt-4o',
-        messages: request,
-      })
-      return data.choices[0].message
+      const { data } = await this.network.post(
+        '/chat/completions',
+        {
+          model: this.config.model ?? 'gpt-4o',
+          messages: request,
+        },
+        {
+          responseType: onStreamCallback ? 'stream' : 'json',
+        }
+      )
+
+      if (onStreamCallback) {
+        data.on('data', (chunk: Buffer) => {
+          const lines = chunk
+            .toString('utf8')
+            .split('\n')
+            .filter(line => line.trim().startsWith('data: '))
+
+          for (const line of lines) {
+            const content = line.replace('data: ', '')
+            if (content === '[DONE]') {
+              break
+            }
+
+            try {
+              const parsed = JSON.parse(content)
+              const gptChunk = parsed.choices[0].delta?.content || ''
+              onStreamCallback(gptChunk)
+            } catch (error) {
+              console.error('Ошибка парсинга:', error)
+            }
+          }
+        })
+      } else {
+        return data.choices[0].message
+      }
     } catch (e) {
       return `Generating message abort with error: ${JSON.stringify(e)}`
     }

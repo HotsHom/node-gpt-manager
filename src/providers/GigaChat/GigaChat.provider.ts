@@ -62,7 +62,10 @@ export class GigaChatProvider implements IProvider {
     return Promise.resolve(false)
   }
 
-  async completion(request: GPTRequest): Promise<GPTMessageEntity | string> {
+  async completion(
+    request: GPTRequest,
+    onStreamCallback?: (chunk: string) => void
+  ): Promise<GPTMessageEntity | string | void> {
     try {
       await this.authenticate()
       if (!this.accessToken) {
