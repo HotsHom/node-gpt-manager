@@ -29,12 +29,7 @@ export interface IGPTManager<TGPTNames extends string> {
 
   completion(
     request: GPTRequest,
-    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
-    onStreamCallback?: (chunk: string) => void
-  ): Promise<GPTMessageEntity | string | void>
-  completion(
-    request: GPTRequest,
-    model: TGPTNames,
+    model?: TGPTNames,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
     onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void>

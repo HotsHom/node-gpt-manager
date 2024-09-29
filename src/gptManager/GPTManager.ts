@@ -131,30 +131,17 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
    * @param {GPTRequest} request - The request to be sent to the GPT models.
    * @param {TGPTNames} [model] - The name of the GPT model to use for completion.
    * @param {(gpt: BaseGPTConfig, gptName?: string) => Promise<void>} [finishCallback] - Optional callback function to be called after the completion.
+   * @param onStreamCallback
    * @return {Promise<GPTMessageEntity | string>} - A promise that resolves to the generated text or throws an error.
    */
   completion(
     request: GPTRequest,
-    model: TGPTNames,
-    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | string>
-  completion(
-    request: GPTRequest,
-    finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>
-  ): Promise<GPTMessageEntity | string>
-  completion(
-    request: GPTRequest,
-    modelOrFinishCallback?: TGPTNames | ((gpt: BaseGPTConfig, gptName?: string) => Promise<void>),
+    model?: TGPTNames,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
     onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void> {
-    if (typeof modelOrFinishCallback === 'function') {
-      finishCallback = modelOrFinishCallback
-      modelOrFinishCallback = undefined
-    }
-
-    if (typeof modelOrFinishCallback === 'string') {
-      const fallbackStrategy = new FallbackStrategy(this, modelOrFinishCallback)
+    if (model) {
+      const fallbackStrategy = new FallbackStrategy(this, model)
       return fallbackStrategy.completion(request, finishCallback, onStreamCallback)
     }
 
