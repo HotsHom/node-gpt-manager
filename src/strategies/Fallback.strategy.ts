@@ -49,6 +49,9 @@ export class FallbackStrategy<TGPTNames extends string> implements IStrategy {
       try {
         const provider = this.manager.getGPTProvider(gptName)
         const response = await provider.completion(request, onStreamCallback)
+        if (onStreamCallback) {
+          return
+        }
         if (response) {
           finishCallback && (await finishCallback(provider.getConfig(), gptName))
           return response
