@@ -15,15 +15,13 @@ export type GPTMessageEntity = {
   /**
    * Content of the message entity.
    */
-  content: GPTContentOfMessage
+  content: string | GPTContentOfMessage | GPTContentOfMessage[]
 }
-export type GPTContentOfMessage =
-  | string
-  | {
-      type: 'text' | 'image_url'
-      text?: string
-      image_url?: {
-        url: string
-        detail?: string
-      }
-    }
+export type GPTContentOfMessage = {
+  type: 'text' | 'image_url'
+  text?: string
+  image_url?: {
+    url: string
+    detail?: string
+  }
+}
