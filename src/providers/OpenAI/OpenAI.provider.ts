@@ -57,6 +57,7 @@ export class OpenAIProvider implements IProvider {
         {
           model: this.config.model ?? 'gpt-4o',
           messages: request,
+          stream: !!onStreamCallback,
         },
         {
           responseType: onStreamCallback ? 'stream' : 'json',
