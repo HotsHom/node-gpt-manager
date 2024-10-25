@@ -57,6 +57,7 @@ class OpenAIProvider {
                     for (const line of lines) {
                         const content = line.replace('data: ', '');
                         if (content === '[DONE]') {
+                            onStreamCallback('[DONE]');
                             break;
                         }
                         try {
