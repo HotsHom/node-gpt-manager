@@ -3,6 +3,7 @@ import { BaseGPTConfig } from '../../types/GPTConfig'
 import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes'
 import { isOpenAIConfig, OpenAIConfig } from './types'
 import axios, { AxiosInstance } from 'axios'
+import { hasInputAudio } from '../../helpers/hasInputAudio.helper'
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig
@@ -55,7 +56,7 @@ export class OpenAIProvider implements IProvider {
       const { data } = await this.network.post(
         '/chat/completions',
         {
-          model: this.config.model ?? 'gpt-4o',
+          model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : this.config.model ?? 'gpt-4o',
           messages: request,
           stream: !!onStreamCallback,
         },
@@ -91,6 +92,7 @@ export class OpenAIProvider implements IProvider {
         return data.choices[0].message
       }
     } catch (e) {
+      console.log('[Error][Completion]', e)
       return `Generating message abort with error: ${JSON.stringify(e)}`
     }
   }
