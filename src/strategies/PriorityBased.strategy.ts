@@ -38,14 +38,12 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
    * @param request - The request to be sent to the GPT models.
    * @param finishCallback
    * @param onStreamCallback
-   * @param shouldAbort
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
   async completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
-    onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void> {
     const sortedProviders = Array.from(this.manager.getProvidersWithNamesMap().entries())
       .sort((a, b) => {
@@ -58,7 +56,7 @@ export class PriorityBasedStrategy<TGPTNames extends string> implements IStrateg
     for (const gptName of sortedProviders) {
       try {
         const provider = this.manager.getGPTProvider(gptName)
-        const response = await provider.completion(request, onStreamCallback, shouldAbort)
+        const response = await provider.completion(request, onStreamCallback)
         if (response) {
           finishCallback && (await finishCallback(provider.getConfig(), gptName))
           return response

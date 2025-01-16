@@ -132,22 +132,20 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
    * @param {TGPTNames} [model] - The name of the GPT model to use for completion.
    * @param {(gpt: BaseGPTConfig, gptName?: string) => Promise<void>} [finishCallback] - Optional callback function to be called after the completion.
    * @param onStreamCallback
-   * @param shouldAbort
    * @return {Promise<GPTMessageEntity | string>} - A promise that resolves to the generated text or throws an error.
    */
   completion(
     request: GPTRequest,
     model?: TGPTNames,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
-    onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void> {
     if (model) {
       const fallbackStrategy = new FallbackStrategy(this, model)
-      return fallbackStrategy.completion(request, finishCallback, onStreamCallback, shouldAbort)
+      return fallbackStrategy.completion(request, finishCallback, onStreamCallback)
     }
 
-    return this.strategy.completion(request, finishCallback, onStreamCallback, shouldAbort)
+    return this.strategy.completion(request, finishCallback, onStreamCallback)
   }
 
   /**

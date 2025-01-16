@@ -31,8 +31,7 @@ export interface IGPTManager<TGPTNames extends string> {
     request: GPTRequest,
     model?: TGPTNames,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
-    onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void>
 
   getAvailableProviders(): Promise<AvailableModelsType<TGPTNames>>

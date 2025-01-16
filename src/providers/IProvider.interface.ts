@@ -17,13 +17,11 @@ export interface IProvider {
    *
    * @param request - The request to be sent to the GPT models.
    * @param onStreamCallback
-   * @param shouldAbort
    * @returns A promise that resolves to the generated text or throws an error.
    */
   completion(
     request: GPTRequest,
-    onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void>
 
   isAvailable(): Promise<boolean>

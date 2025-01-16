@@ -16,13 +16,11 @@ export interface IStrategy {
    * @param request - The request to be sent to the GPT models.
    * @param finishCallback
    * @param onStreamCallback
-   * @param shouldAbort
    * @returns A promise that resolves to the generated text or throws an error.
    */
   completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
-    onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void>
 }
