@@ -36,19 +36,21 @@ export class FallbackStrategy<TGPTNames extends string> implements IStrategy {
    * @param request - The request to be sent to the GPT models.
    * @param finishCallback
    * @param onStreamCallback
+   * @param shouldAbort
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
   async completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
-    onStreamCallback?: (chunk: string) => void
+    onStreamCallback?: (chunk: string) => void,
+    shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
     const models = [this.primaryModelName, ...this.fallbackModelNames]
 
     for (const gptName of models) {
       try {
         const provider = this.manager.getGPTProvider(gptName)
-        const response = await provider.completion(request, onStreamCallback)
+        const response = await provider.completion(request, onStreamCallback, shouldAbort)
         if (onStreamCallback) {
           return
         }

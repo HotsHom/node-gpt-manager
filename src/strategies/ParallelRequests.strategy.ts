@@ -25,17 +25,19 @@ export class ParallelRequestsStrategy<TGPTNames extends string> implements IStra
    * @param request - The request to be sent to the GPT models.
    * @param finishCallback
    * @param onStreamCallback
+   * @param shouldAbort
    * @returns A promise that resolves to the generated text or throws an error if all providers fail.
    */
   async completion(
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
-    onStreamCallback?: (chunk: string) => void
+    onStreamCallback?: (chunk: string) => void,
+    shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
     const providers = Array.from(this.manager.getProvidersWithNamesMap().entries()).map(
       async gptProviderWithName => {
         const provider = gptProviderWithName[1]
-        const response = await provider.completion(request, onStreamCallback)
+        const response = await provider.completion(request, onStreamCallback, shouldAbort)
         return {
           config: provider.getConfig(),
           name: gptProviderWithName[0],
