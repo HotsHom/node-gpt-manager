@@ -50,8 +50,6 @@ export class OpenAIProvider implements IProvider {
     onStreamCallback?: (chunk: string) => void,
     shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
-    const controller = new AbortController()
-    const { signal } = controller
     try {
       if (!this.network) {
         throw new Error('Network is not initialized, call authenticate() first')
@@ -65,17 +63,16 @@ export class OpenAIProvider implements IProvider {
         },
         {
           responseType: onStreamCallback ? 'stream' : 'json',
-          signal
         }
       )
 
       if (onStreamCallback) {
-        let generatedText = ''
         data.on('data', (chunk: Buffer) => {
-          if (shouldAbort && shouldAbort()) {
-            controller.abort()
+          if (shouldAbort) {
+            data.destroy()
             return
           }
+
           const lines = chunk
             .toString('utf8')
             .split('\n')
@@ -91,19 +88,11 @@ export class OpenAIProvider implements IProvider {
             try {
               const parsed = JSON.parse(content)
               const gptChunk = parsed.choices[0].delta?.content || ''
-              generatedText = gptChunk
               onStreamCallback(gptChunk)
             } catch (error) {
               console.error('Ошибка парсинга:', error)
             }
           }
-        })
-
-        return new Promise((resolve) => {
-          data.on('end', () => resolve(generatedText))
-          data.on('error', (error: Error) => {
-            resolve(generatedText)
-          })
         })
       } else {
         return data.choices[0].message
