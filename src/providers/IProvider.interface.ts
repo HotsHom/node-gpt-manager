@@ -23,7 +23,7 @@ export interface IProvider {
   completion(
     request: GPTRequest,
     onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    shouldAbort?: boolean
   ): Promise<GPTMessageEntity | string | void>
 
   isAvailable(): Promise<boolean>

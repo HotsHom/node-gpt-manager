@@ -31,7 +31,7 @@ export class FirstSuccessStrategy<TGPTNames extends string> implements IStrategy
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
     onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    shouldAbort?: boolean
   ): Promise<GPTMessageEntity | string | void> {
     for (const gptProviders of this.manager.getProvidersWithNamesMap()) {
       try {

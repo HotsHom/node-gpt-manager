@@ -48,7 +48,7 @@ export class OpenAIProvider implements IProvider {
   async completion(
     request: GPTRequest,
     onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    shouldAbort?: boolean
   ): Promise<GPTMessageEntity | string | void> {
     try {
       if (!this.network) {
@@ -68,8 +68,8 @@ export class OpenAIProvider implements IProvider {
 
       if (onStreamCallback) {
         data.on('data', (chunk: Buffer) => {
-          if (shouldAbort && shouldAbort()) {
-            console.log(`shouldAbort ${shouldAbort()}`)
+          if (shouldAbort ) {
+            console.warn(`shouldAbort ${shouldAbort}`)
             onStreamCallback('[DONE]')
             data.destroy()
             return

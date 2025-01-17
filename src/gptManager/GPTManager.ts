@@ -140,7 +140,7 @@ export class GPTManager<TGPTNames extends string> implements IGPTManager<TGPTNam
     model?: TGPTNames,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
     onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    shouldAbort?: boolean
   ): Promise<GPTMessageEntity | string | void> {
     if (model) {
       const fallbackStrategy = new FallbackStrategy(this, model)
