@@ -68,8 +68,8 @@ export class OpenAIProvider implements IProvider {
 
       if (onStreamCallback) {
         data.on('data', (chunk: Buffer) => {
-          if (shouldAbort ) {
-            console.warn(`shouldAbort ${shouldAbort}`)
+          if (shouldAbort) {
+            console.error(`shouldAbort ${shouldAbort}`)
             onStreamCallback('[DONE]')
             data.destroy()
             return
