@@ -48,7 +48,7 @@ export class OpenAIProvider implements IProvider {
   async completion(
     request: GPTRequest,
     onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: boolean
+    shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
     const controller = new AbortController()
     try {
@@ -72,12 +72,12 @@ export class OpenAIProvider implements IProvider {
         data.on('data', (chunk: Buffer) => {
           console.warn(`shouldAbort ${shouldAbort}`)
 
-          if (shouldAbort) {
-            console.warn(`shouldAbort ${shouldAbort}`)
+          if (shouldAbort && shouldAbort()) {
+            console.warn(`shouldAbort ${shouldAbort()}`)
             onStreamCallback('[DONE]')
             data.destroy()
             controller.abort()
-            throw new Error(`generation stopped because shouldAbort ${shouldAbort}`)
+            throw new Error(`generation stopped because shouldAbort ${shouldAbort()}`)
           }
 
           const lines = chunk

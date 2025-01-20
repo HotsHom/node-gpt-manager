@@ -32,7 +32,7 @@ export class ParallelRequestsStrategy<TGPTNames extends string> implements IStra
     request: GPTRequest,
     finishCallback?: (gpt: BaseGPTConfig, gptName?: string) => Promise<void>,
     onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: boolean
+    shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
     const providers = Array.from(this.manager.getProvidersWithNamesMap().entries()).map(
       async gptProviderWithName => {
