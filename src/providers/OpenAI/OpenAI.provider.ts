@@ -50,7 +50,7 @@ export class OpenAIProvider implements IProvider {
     onStreamCallback?: (chunk: string) => void,
     shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
-    const controller = new AbortController()
+    // const controller = new AbortController()
     try {
       if (!this.network) {
         throw new Error('Network is not initialized, call authenticate() first')
@@ -64,20 +64,18 @@ export class OpenAIProvider implements IProvider {
         },
         {
           responseType: onStreamCallback ? 'stream' : 'json',
-          signal: controller.signal
+          // signal: controller.signal
         }
       )
 
       if (onStreamCallback) {
         data.on('data', (chunk: Buffer) => {
-          console.warn(`shouldAbort ${shouldAbort}`)
-
           if (shouldAbort && shouldAbort()) {
             console.warn(`shouldAbort ${shouldAbort()}`)
             onStreamCallback('[DONE]')
             data.destroy()
-            controller.abort()
-            throw new Error(`generation stopped because shouldAbort ${shouldAbort()}`)
+            // controller.abort()
+            // throw new Error(`generation stopped because shouldAbort ${shouldAbort()}`)
           }
 
           const lines = chunk
