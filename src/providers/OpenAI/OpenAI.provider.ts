@@ -4,6 +4,9 @@ import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes'
 import { isOpenAIConfig, OpenAIConfig } from './types'
 import axios, { AxiosInstance } from 'axios'
 import { hasInputAudio } from '../../helpers/hasInputAudio.helper'
+import {getLastPDFUrl, hasInputPDFHelper} from "../../helpers/hasInputPDF.helper";
+import * as fs from "fs";
+import FormData from "form-data";
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig
@@ -54,12 +57,31 @@ export class OpenAIProvider implements IProvider {
       if (!this.network) {
         throw new Error('Network is not initialized, call authenticate() first')
       }
+
+      let fileId: string | undefined
+      if (hasInputPDFHelper(request)) {
+        const pdfUrl = getLastPDFUrl(request)
+        if (pdfUrl) {
+          const formData = new FormData
+          formData.append('file', fs.createReadStream(pdfUrl));
+          formData.append('purpose', 'assistants');
+
+          const response = await axios.post('/files', formData, {
+            headers: {
+              ...formData.getHeaders()
+            }
+          })
+          fileId = response.data.id
+        }
+      }
+
       const { data } = await this.network.post(
         '/chat/completions',
         {
-          model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : this.config.model ?? 'gpt-4o',
+          model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : (this.config.model ?? 'gpt-4o'),
           messages: request,
           stream: !!onStreamCallback,
+          file_ids: [fileId],
         },
         {
           responseType: onStreamCallback ? 'stream' : 'json',
