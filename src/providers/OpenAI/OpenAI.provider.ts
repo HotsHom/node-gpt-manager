@@ -79,6 +79,15 @@ export class OpenAIProvider implements IProvider {
               }
             })
             fileId = response.data.id
+            if (Array.isArray(request)) {
+              request.forEach(msg => {
+                if (Array.isArray(msg.content)) {
+                  msg.content = msg.content.filter(item => item.type !== 'pdf_url');
+                } else if (msg.content && typeof msg.content === 'object' && msg.content.type === 'pdf_url') {
+                  msg.content = { type: 'text', text: '' };
+                }
+              });
+            }
           } catch (e) {
             console.log('[Error][Files]', e)
             return `Generating message abort with error: ${JSON.stringify(e)}`
