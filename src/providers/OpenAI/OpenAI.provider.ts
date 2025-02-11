@@ -67,7 +67,7 @@ export class OpenAIProvider implements IProvider {
             formData.append('file', fs.createReadStream(pdfUrl));
             formData.append('purpose', 'assistants');
 
-            const response = await axios.post('/files', formData, {
+            const response = await this.network.post('/files', formData, {
               headers: {
                 ...formData.getHeaders()
               }
