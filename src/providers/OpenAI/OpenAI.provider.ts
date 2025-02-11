@@ -59,7 +59,7 @@ export class OpenAIProvider implements IProvider {
       }
 
       let fileId: string | undefined
-      return  hasInputPDFHelper(request)
+      return `hasInputPdfHelper ${hasInputPDFHelper(request)}`
       // if (hasInputPDFHelper(request)) {
       //   const pdfUrl = getLastPDFUrl(request)
       //   if (pdfUrl) {
