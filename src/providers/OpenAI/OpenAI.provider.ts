@@ -59,74 +59,72 @@ export class OpenAIProvider implements IProvider {
       }
 
       let fileId: string | undefined
-      return `hasInputPdfHelper ${hasInputPDFHelper(request)}`
-      // if (hasInputPDFHelper(request)) {
-      //   const pdfUrl = getLastPDFUrl(request)
-      //   if (pdfUrl) {
-      //     try {
-      //       const formData = new FormData
-      //       formData.append('file', fs.createReadStream(pdfUrl));
-      //       formData.append('purpose', 'assistants');
-      //
-      //       const response = await axios.post('/files', formData, {
-      //         headers: {
-      //           ...formData.getHeaders()
-      //         }
-      //       })
-      //       fileId = response.data.id
-      //       return JSON.stringify(response)
-      //     } catch (e) {
-      //       console.log('[Error][Files]', e)
-      //       return `Generating message abort with error: ${JSON.stringify(e)}`
-      //     }
-      //   }
-      // }
-      //
-      // const { data } = await this.network.post(
-      //   '/chat/completions',
-      //   {
-      //     model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : (this.config.model ?? 'gpt-4o'),
-      //     messages: request,
-      //     stream: !!onStreamCallback,
-      //     file_ids: fileId ? [fileId] : [],
-      //   },
-      //   {
-      //     responseType: onStreamCallback ? 'stream' : 'json',
-      //   }
-      // )
-      //
-      // if (onStreamCallback) {
-      //   data.on('data', (chunk: Buffer) => {
-      //     if (shouldAbort && shouldAbort()) {
-      //       console.warn(`shouldAbort ${shouldAbort()}`)
-      //       onStreamCallback('[DONE]')
-      //       data.destroy()
-      //     }
-      //
-      //     const lines = chunk
-      //       .toString('utf8')
-      //       .split('\n')
-      //       .filter(line => line.trim().startsWith('data: '))
-      //
-      //     for (const line of lines) {
-      //       const content = line.replace('data: ', '')
-      //       if (content === '[DONE]') {
-      //         onStreamCallback('[DONE]')
-      //         break
-      //       }
-      //
-      //       try {
-      //         const parsed = JSON.parse(content)
-      //         const gptChunk = parsed.choices[0].delta?.content || ''
-      //         onStreamCallback(gptChunk)
-      //       } catch (error) {
-      //         console.error('Ошибка парсинга:', error)
-      //       }
-      //     }
-      //   })
-      // } else {
-      //   return data.choices[0].message
-      // }
+      if (hasInputPDFHelper(request)) {
+        const pdfUrl = getLastPDFUrl(request)
+        if (pdfUrl) {
+          try {
+            const formData = new FormData
+            formData.append('file', fs.createReadStream(pdfUrl));
+            formData.append('purpose', 'assistants');
+
+            const response = await axios.post('/files', formData, {
+              headers: {
+                ...formData.getHeaders()
+              }
+            })
+            fileId = response.data.id
+          } catch (e) {
+            console.log('[Error][Files]', e)
+            return `Generating message abort with error: ${JSON.stringify(e)}`
+          }
+        }
+      }
+
+      const { data } = await this.network.post(
+        '/chat/completions',
+        {
+          model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : (this.config.model ?? 'gpt-4o'),
+          messages: request,
+          stream: !!onStreamCallback,
+          file_ids: fileId ? [fileId] : [],
+        },
+        {
+          responseType: onStreamCallback ? 'stream' : 'json',
+        }
+      )
+
+      if (onStreamCallback) {
+        data.on('data', (chunk: Buffer) => {
+          if (shouldAbort && shouldAbort()) {
+            console.warn(`shouldAbort ${shouldAbort()}`)
+            onStreamCallback('[DONE]')
+            data.destroy()
+          }
+
+          const lines = chunk
+            .toString('utf8')
+            .split('\n')
+            .filter(line => line.trim().startsWith('data: '))
+
+          for (const line of lines) {
+            const content = line.replace('data: ', '')
+            if (content === '[DONE]') {
+              onStreamCallback('[DONE]')
+              break
+            }
+
+            try {
+              const parsed = JSON.parse(content)
+              const gptChunk = parsed.choices[0].delta?.content || ''
+              onStreamCallback(gptChunk)
+            } catch (error) {
+              console.error('Ошибка парсинга:', error)
+            }
+          }
+        })
+      } else {
+        return data.choices[0].message
+      }
     } catch (e) {
       console.log('[Error][Completion]', e)
       return `Generating message abort with error: ${JSON.stringify(e)}`
