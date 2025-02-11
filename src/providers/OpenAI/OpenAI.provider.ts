@@ -63,7 +63,26 @@ export class OpenAIProvider implements IProvider {
       if (hasInputPDFHelper(request)) {
         const pdfUrl = getLastPDFUrl(request)
         if (pdfUrl) {
-          fileId = await this.uploadFile(pdfUrl)
+          try {
+            const fileResponse = await axios.get(pdfUrl, { responseType: 'arraybuffer' })
+
+            const formData = new FormData();
+            formData.append('file', Buffer.from(fileResponse.data), {
+              filename: 'document.pdf',
+              contentType: 'application/pdf',
+            });
+            formData.append('purpose', 'assistants');
+
+            const response = await this.network.post('/files', formData, {
+              headers: {
+                ...formData.getHeaders()
+              }
+            })
+            fileId = response.data.id
+          } catch (e) {
+            console.log('[Error][Files]', e)
+            return `Generating message abort with error: ${JSON.stringify(e)}`
+          }
         }
       }
 
@@ -130,33 +149,6 @@ export class OpenAIProvider implements IProvider {
     } catch (e) {
       console.log(`Connection service error ${e}`)
       return false
-    }
-  }
-
-  async uploadFile(pdfUrl: string) {
-    if (!this.network) {
-      throw new Error('Network is not initialized, call authenticate() first')
-    }
-
-    try {
-      const fileResponse = await axios.get(pdfUrl, { responseType: 'arraybuffer' })
-
-      const formData = new FormData();
-      formData.append('file', Buffer.from(fileResponse.data), {
-        filename: 'document.pdf',
-        contentType: 'application/pdf',
-      });
-      formData.append('purpose', 'assistants');
-
-      const response = await this.network.post('/files', formData, {
-        headers: {
-          ...formData.getHeaders()
-        }
-      })
-      return response.data.id
-    } catch (e) {
-      console.log('[Error][Files]', e)
-      return `Generating message abort with error: ${JSON.stringify(e)}`
     }
   }
 }
