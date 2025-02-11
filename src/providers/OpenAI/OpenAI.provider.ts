@@ -7,6 +7,7 @@ import { hasInputAudio } from '../../helpers/hasInputAudio.helper'
 import {getLastPDFUrl, hasInputPDFHelper} from "../../helpers/hasInputPDF.helper";
 import * as fs from "fs";
 import FormData from "form-data";
+import path from "node:path";
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig
@@ -63,8 +64,19 @@ export class OpenAIProvider implements IProvider {
         const pdfUrl = getLastPDFUrl(request)
         if (pdfUrl) {
           try {
+            const tempFilePath = path.join(__dirname, 'temp.pdf')
+            const uploadResponse = await axios.get(pdfUrl, {
+              responseType: 'stream'
+            })
+
+            const writer = fs.createWriteStream(tempFilePath)
+            uploadResponse.data.pipe(writer)
+            await new Promise((resolve, reject) => {
+              writer.on('finish', () => resolve);
+              writer.on('error', reject);
+            });
             const formData = new FormData
-            formData.append('file', fs.createReadStream(pdfUrl));
+            formData.append('file', fs.createReadStream(tempFilePath));
             formData.append('purpose', 'assistants');
 
             const response = await this.network.post('/files', formData, {
@@ -73,6 +85,7 @@ export class OpenAIProvider implements IProvider {
               }
             })
             fileId = response.data.id
+            fs.unlinkSync(tempFilePath);
           } catch (e) {
             console.log('[Error][Files]', e)
             return `Generating message abort with error: ${JSON.stringify(e)}`
