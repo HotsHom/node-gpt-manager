@@ -62,16 +62,22 @@ export class OpenAIProvider implements IProvider {
       if (hasInputPDFHelper(request)) {
         const pdfUrl = getLastPDFUrl(request)
         if (pdfUrl) {
-          const formData = new FormData
-          formData.append('file', fs.createReadStream(pdfUrl));
-          formData.append('purpose', 'assistants');
+          try {
+            const formData = new FormData
+            formData.append('file', fs.createReadStream(pdfUrl));
+            formData.append('purpose', 'assistants');
 
-          const response = await axios.post('/files', formData, {
-            headers: {
-              ...formData.getHeaders()
-            }
-          })
-          fileId = response.data.id
+            const response = await axios.post('/files', formData, {
+              headers: {
+                ...formData.getHeaders()
+              }
+            })
+            fileId = response.data.id
+            console.log(`response ${JSON.stringify(response)}`)
+          } catch (e) {
+            console.log('[Error][Files]', e)
+            return `Generating message abort with error: ${JSON.stringify(e)}`
+          }
         }
       }
 
@@ -81,7 +87,7 @@ export class OpenAIProvider implements IProvider {
           model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : (this.config.model ?? 'gpt-4o'),
           messages: request,
           stream: !!onStreamCallback,
-          file_ids: [fileId],
+          file_ids: fileId ? [fileId] : [],
         },
         {
           responseType: onStreamCallback ? 'stream' : 'json',
