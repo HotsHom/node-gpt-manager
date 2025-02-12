@@ -4,10 +4,6 @@ import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
 import { isOpenAIConfig, OpenAIConfig } from './types';
 import axios, { AxiosInstance } from 'axios';
 import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
-import { getLastPDFUrl, hasInputPDFHelper } from '../../helpers/hasInputPDF.helper';
-import * as fs from 'fs';
-import FormData from 'form-data';
-import path from 'node:path';
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
