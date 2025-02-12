@@ -101,7 +101,7 @@ export class OpenAIProvider implements IProvider {
           model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : (this.config.model ?? 'gpt-4o'),
           messages: request,
           stream: !!onStreamCallback,
-          file_ids: fileId ? [fileId] : [],
+          ...(fileId ? { file_ids: [fileId] } : {}),
         },
         {
           responseType: onStreamCallback ? 'stream' : 'json',
