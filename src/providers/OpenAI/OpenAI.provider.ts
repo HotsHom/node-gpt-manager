@@ -59,53 +59,12 @@ export class OpenAIProvider implements IProvider {
         throw new Error('Network is not initialized, call authenticate() first');
       }
 
-      let fileId: string | undefined;
-      if (hasInputPDFHelper(request)) {
-        const pdfUrl = getLastPDFUrl(request);
-        if (pdfUrl) {
-          try {
-            const fileResponse = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
-
-            const formData = new FormData();
-            formData.append('file', Buffer.from(fileResponse.data), {
-              filename: 'document.pdf',
-              contentType: 'application/pdf',
-            });
-            formData.append('purpose', 'assistants');
-
-            const response = await this.network.post('/files', formData, {
-              headers: {
-                ...formData.getHeaders(),
-              },
-            });
-            fileId = response.data.id;
-            if (Array.isArray(request)) {
-              request.forEach(msg => {
-                if (Array.isArray(msg.content)) {
-                  msg.content = msg.content.filter(item => item.type !== 'pdf_url');
-                } else if (
-                  msg.content &&
-                  typeof msg.content === 'object' &&
-                  msg.content.type === 'pdf_url'
-                ) {
-                  msg.content = { type: 'text', text: '' };
-                }
-              });
-            }
-          } catch (e) {
-            console.log('[Error][Files]', e);
-            return `Generating message abort with error: ${JSON.stringify(e)}`;
-          }
-        }
-      }
-
       const { data } = await this.network.post(
         '/chat/completions',
         {
           model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : (this.config.model ?? 'gpt-4o'),
           messages: request,
           stream: !!onStreamCallback,
-          ...(fileId ? { file_ids: [fileId] } : {}),
         },
         {
           responseType: onStreamCallback ? 'stream' : 'json',
