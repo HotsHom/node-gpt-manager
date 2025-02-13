@@ -1,9 +1,10 @@
 import { IProvider } from '../IProvider.interface';
 import { BaseGPTConfig } from '../../types/GPTConfig';
-import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
+import { GPTContentOfMessage, GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
 import { isOpenAIConfig, OpenAIConfig } from './types';
 import axios, { AxiosInstance } from 'axios';
-import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
+import { encoding_for_model, TiktokenModel } from 'tiktoken';
+import { GPTRoles } from '../../constants/GPTRoles';
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
@@ -51,57 +52,115 @@ export class OpenAIProvider implements IProvider {
     shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
     try {
-      if (!this.network) {
-        throw new Error('Network is not initialized, call authenticate() first');
+      if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
+
+      const maxTokens = 2048;
+      const overlap = 200;
+      const tokenizer = encoding_for_model((this.config.model as TiktokenModel) ?? 'gpt-4o');
+
+      const messages: GPTMessageEntity[] =
+        typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
+
+      const extractText = (
+        content: string | GPTContentOfMessage | GPTContentOfMessage[]
+      ): string => {
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) return content.map(extractText).join(' ');
+        if ('type' in content && content.type === 'text' && content.text) return content.text;
+        return '';
+      };
+
+      const chunks: GPTMessageEntity[][] = [];
+      let currentChunk: GPTMessageEntity[] = [];
+      let tokenCount = 0;
+
+      for (const message of messages) {
+        if (
+          message.content &&
+          typeof message.content !== 'string' &&
+          'type' in message.content &&
+          (message.content.type === 'image_url' || message.content.type === 'input_audio')
+        ) {
+          currentChunk.push(message);
+          continue;
+        }
+
+        const textContent = extractText(message.content);
+        const tokens = tokenizer.encode(textContent);
+
+        if (tokenCount + tokens.length > maxTokens) {
+          chunks.push([...currentChunk]);
+          currentChunk = currentChunk.slice(-overlap);
+          tokenCount = tokenizer.encode(
+            currentChunk.map(m => extractText(m.content)).join(' ')
+          ).length;
+        }
+
+        currentChunk.push(message);
+        tokenCount += tokens.length;
       }
 
-      const { data } = await this.network.post(
-        '/chat/completions',
-        {
-          model: hasInputAudio(request) ? 'gpt-4o-audio-preview' : (this.config.model ?? 'gpt-4o'),
-          messages: request,
-          stream: !!onStreamCallback,
-        },
-        {
-          responseType: onStreamCallback ? 'stream' : 'json',
+      if (currentChunk.length) chunks.push(currentChunk);
+
+      let fullResponse = '';
+
+      const processChunk = async (chunk: GPTMessageEntity[]) => {
+        if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
+
+        const { data } = await this.network.post(
+          '/chat/completions',
+          {
+            model: this.config.model ?? 'gpt-4o',
+            messages: chunk,
+            stream: !!onStreamCallback,
+          },
+          { responseType: onStreamCallback ? 'stream' : 'json' }
+        );
+
+        if (onStreamCallback) {
+          data.on('data', (chunk: Buffer) => {
+            if (shouldAbort?.()) {
+              console.warn(`shouldAbort ${shouldAbort()}`);
+              onStreamCallback('[DONE]');
+              data.destroy();
+              return;
+            }
+
+            chunk
+              .toString('utf8')
+              .split('\n')
+              .filter(line => line.trim().startsWith('data: '))
+              .forEach(line => {
+                const content = line.replace('data: ', '');
+                if (content === '[DONE]') {
+                  onStreamCallback('[DONE]');
+                  return;
+                }
+
+                try {
+                  const gptChunk = JSON.parse(content).choices[0].delta?.content || '';
+                  onStreamCallback(gptChunk);
+                  fullResponse += gptChunk;
+                } catch (error) {
+                  console.error('Ошибка парсинга:', error);
+                }
+              });
+          });
+        } else {
+          fullResponse += data.choices[0].message.content;
         }
-      );
+      };
 
       if (onStreamCallback) {
-        data.on('data', (chunk: Buffer) => {
-          if (shouldAbort && shouldAbort()) {
-            console.warn(`shouldAbort ${shouldAbort()}`);
-            onStreamCallback('[DONE]');
-            data.destroy();
-          }
-
-          const lines = chunk
-            .toString('utf8')
-            .split('\n')
-            .filter(line => line.trim().startsWith('data: '));
-
-          for (const line of lines) {
-            const content = line.replace('data: ', '');
-            if (content === '[DONE]') {
-              onStreamCallback('[DONE]');
-              break;
-            }
-
-            try {
-              const parsed = JSON.parse(content);
-              const gptChunk = parsed.choices[0].delta?.content || '';
-              onStreamCallback(gptChunk);
-            } catch (error) {
-              console.error('Ошибка парсинга:', error);
-            }
-          }
-        });
+        for (const chunk of chunks) await processChunk(chunk);
       } else {
-        return data.choices[0].message;
+        await Promise.all(chunks.map(processChunk));
       }
+
+      return onStreamCallback ? undefined : { role: GPTRoles.ASSISTANT, content: fullResponse };
     } catch (e) {
       console.log('[Error][Completion]', e);
-      return `Generating message abort with error: ${JSON.stringify(e)}`;
+      return `Generating message aborted with error: ${JSON.stringify(e)}`;
     }
   }
 
