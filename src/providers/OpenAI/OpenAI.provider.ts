@@ -76,8 +76,8 @@ export class OpenAIProvider implements IProvider {
 
       for (const message of messages) {
         if (
-          message.content &&
           typeof message.content !== 'string' &&
+          !Array.isArray(message.content) &&
           'type' in message.content &&
           (message.content.type === 'image_url' || message.content.type === 'input_audio')
         ) {
@@ -89,8 +89,8 @@ export class OpenAIProvider implements IProvider {
         const tokens = tokenizer.encode(textContent);
 
         if (tokenCount + tokens.length > maxTokens) {
-          chunks.push([...currentChunk]);
-          currentChunk = currentChunk.slice(-overlap);
+          if (currentChunk.length) chunks.push([...currentChunk]); // Добавляем текущий чанк перед сбросом
+          currentChunk = currentChunk.slice(-overlap); // Сохраняем overlap
           tokenCount = tokenizer.encode(
             currentChunk.map(m => extractText(m.content)).join(' ')
           ).length;
@@ -102,10 +102,16 @@ export class OpenAIProvider implements IProvider {
 
       if (currentChunk.length) chunks.push(currentChunk);
 
+      if (chunks.length === 0) {
+        chunks.push([{ role: GPTRoles.USER, content: ' ' }]);
+      }
+
       let fullResponse = '';
 
       const processChunk = async (chunk: GPTMessageEntity[]) => {
         if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
+
+        console.log('[DEBUG] Отправка chunk в API:', JSON.stringify(chunk, null, 2));
 
         const { data } = await this.network.post(
           '/chat/completions',
