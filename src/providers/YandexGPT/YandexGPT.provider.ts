@@ -74,134 +74,73 @@ export class YandexGPTProvider implements IProvider {
 
   async completion(
     request: GPTRequest,
-    onStreamCallback?: (chunk: string) => void,
-    shouldAbort?: () => boolean
+    onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void> {
     try {
       if (!this.accessToken) {
         throw new Error('AccessToken is not initialized, call authenticate() first');
       }
+
       if (!this.network) {
         throw new Error('Network is not initialized, call authenticate() first');
       }
 
       const gptModel = `gpt://${this.config.folderIdentifier}/yandexgpt/latest`;
       const requestTemperature = Math.min(1, Math.max(0, this.config.temperature));
-      const maxTokens = 2048;
-      const overlap = 200;
-      const tokenizer = encoding_for_model('gpt-4o');
 
-      const messages: GPTMessageEntity[] =
-        typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
+      const updateRequest = Array.isArray(request)
+        ? request.map(message => ({
+            role: message.role,
+            text: message.content,
+          }))
+        : request;
 
-      const extractText = (
-        content: string | GPTContentOfMessage | GPTContentOfMessage[]
-      ): string => {
-        if (typeof content === 'string') return content;
-        if (Array.isArray(content)) return content.map(extractText).join(' ');
-        if ('type' in content && content.type === 'text' && content.text) return content.text;
-        return '';
-      };
-
-      const chunks: GPTMessageEntity[][] = [];
-      let currentChunk: GPTMessageEntity[] = [];
-      let tokenCount = 0;
-
-      for (const message of messages) {
-        if (
-          typeof message.content !== 'string' &&
-          !Array.isArray(message.content) &&
-          'type' in message.content &&
-          (message.content.type === 'image_url' || message.content.type === 'input_audio')
-        ) {
-          currentChunk.push(message);
-          continue;
-        }
-
-        const textContent = extractText(message.content);
-        const tokens = tokenizer.encode(textContent);
-
-        if (tokenCount + tokens.length > maxTokens) {
-          if (currentChunk.length) chunks.push([...currentChunk]);
-          currentChunk = currentChunk.slice(-overlap);
-          tokenCount = tokenizer.encode(
-            currentChunk.map(m => extractText(m.content)).join(' ')
-          ).length;
-        }
-
-        currentChunk.push(message);
-        tokenCount += tokens.length;
-      }
-
-      if (currentChunk.length) chunks.push(currentChunk);
-
-      if (chunks.length === 0) {
-        chunks.push([{ role: GPTRoles.USER, content: ' ' }]);
-      }
-
-      let fullResponse = '';
-      const processChunk = async (chunk: GPTMessageEntity[]) => {
-        if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
-
-        const updateRequestChunk = Array.isArray(chunk)
-          ? chunk.map(message => ({
-              role: message.role,
-              text: message.content
-            }))
-          : chunk
-
-        const { data } = await this.network.post(
-          '/completion',
-          {
-            modelUri: gptModel,
-            completionOptions: {
-              stream: !!onStreamCallback,
-              temperature: requestTemperature,
-              maxTokens: this.config.maxTokensCount,
-            },
-            messages: updateRequestChunk,
+      const { data } = await this.network.post(
+        '/completion',
+        {
+          modelUri: gptModel,
+          completionOptions: {
+            stream: !!onStreamCallback,
+            temperature: requestTemperature,
+            maxTokens: this.config.maxTokensCount,
           },
-          { responseType: onStreamCallback ? 'stream' : 'json' }
-        );
-
-        if (onStreamCallback) {
-          data.on('data', (chunk: Buffer) => {
-            if (shouldAbort?.()) {
-              onStreamCallback('[DONE]');
-              data.destroy();
-              return;
-            }
-            chunk
-              .toString('utf8')
-              .split('\n')
-              .filter(line => line.trim().startsWith('data: '))
-              .forEach(line => {
-                const content = line.replace('data: ', '');
-                if (content === '[DONE]') {
-                  onStreamCallback('[DONE]');
-                  return;
-                }
-                try {
-                  const gptChunk = JSON.parse(content).result.alternatives[0].message.text || '';
-                  onStreamCallback(gptChunk);
-                  fullResponse += gptChunk;
-                } catch (error) {
-                  console.error('Ошибка парсинга:', error);
-                }
-              });
-          });
-        } else {
-          fullResponse += data.result.alternatives[0].message.text;
-        }
-      };
+          messages: updateRequest,
+        },
+        { responseType: onStreamCallback ? 'stream' : 'json' }
+      );
 
       if (onStreamCallback) {
-        for (const chunk of chunks) await processChunk(chunk);
-      } else {
-        await Promise.all(chunks.map(processChunk));
-      }
+        let fullResponse = '';
 
-      return onStreamCallback ? undefined : { role: GPTRoles.ASSISTANT, content: fullResponse };
+        data.on('data', (chunk: Buffer) => {
+          const lines = chunk.toString('utf8').split('\n');
+
+          for (const line of lines) {
+            if (line.trim().startsWith('data: ')) {
+              const content = line.replace('data: ', '').trim();
+              if (content === '[DONE]') {
+                onStreamCallback('[DONE]');
+                return;
+              }
+              try {
+                const parsedChunk = JSON.parse(content);
+                const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
+                onStreamCallback(textChunk);
+                fullResponse += textChunk;
+              } catch (error) {
+                console.error('Ошибка парсинга стриминга:', error);
+              }
+            }
+          }
+        });
+
+        return;
+      } else {
+        return {
+          role: data.result.alternatives[0].message.role,
+          content: data.result.alternatives[0].message.text,
+        };
+      }
     } catch (e) {
       console.log(`Generating message error: ${e}`);
       return `Generating message abort with error: ${JSON.stringify(e)}`;
