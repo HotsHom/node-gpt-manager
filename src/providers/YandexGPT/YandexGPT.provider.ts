@@ -184,7 +184,10 @@ export class YandexGPTProvider implements IProvider {
                     const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
 
                     if (textChunk) {
-                      onStreamCallback(textChunk);
+                      const delta = textChunk.slice(fullResponse.length);
+                      if (delta) {
+                        onStreamCallback(delta);
+                      }
                       fullResponse = textChunk;
                     }
 
@@ -199,6 +202,7 @@ export class YandexGPTProvider implements IProvider {
 
             data.on('end', () => {
               console.log('Стрим завершен для чанка, fullResponse:', fullResponse);
+              onStreamCallback('[DONE]');
               resolve();
             });
 
