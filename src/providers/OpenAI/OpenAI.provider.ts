@@ -5,6 +5,7 @@ import { isOpenAIConfig, OpenAIConfig } from './types';
 import axios, { AxiosInstance } from 'axios';
 import { encoding_for_model, TiktokenModel } from 'tiktoken';
 import { GPTRoles } from '../../constants/GPTRoles';
+import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
@@ -89,8 +90,8 @@ export class OpenAIProvider implements IProvider {
         const tokens = tokenizer.encode(textContent);
 
         if (tokenCount + tokens.length > maxTokens) {
-          if (currentChunk.length) chunks.push([...currentChunk]); // Добавляем текущий чанк перед сбросом
-          currentChunk = currentChunk.slice(-overlap); // Сохраняем overlap
+          if (currentChunk.length) chunks.push([...currentChunk]);
+          currentChunk = currentChunk.slice(-overlap);
           tokenCount = tokenizer.encode(
             currentChunk.map(m => extractText(m.content)).join(' ')
           ).length;
@@ -116,7 +117,9 @@ export class OpenAIProvider implements IProvider {
         const { data } = await this.network.post(
           '/chat/completions',
           {
-            model: this.config.model ?? 'gpt-4o',
+            model: hasInputAudio(request)
+              ? 'gpt-4o-audio-preview'
+              : (this.config.model ?? 'gpt-4o'),
             messages: chunk,
             stream: !!onStreamCallback,
           },
