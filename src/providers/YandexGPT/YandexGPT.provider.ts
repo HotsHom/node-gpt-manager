@@ -143,6 +143,13 @@ export class YandexGPTProvider implements IProvider {
       const processChunk = async (chunk: GPTMessageEntity[]) => {
         if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
 
+        const updateRequestChunk = Array.isArray(chunk)
+          ? chunk.map(message => ({
+              role: message.role,
+              text: message.content
+            }))
+          : chunk
+
         const { data } = await this.network.post(
           '/completion',
           {
@@ -152,7 +159,7 @@ export class YandexGPTProvider implements IProvider {
               temperature: requestTemperature,
               maxTokens: this.config.maxTokensCount,
             },
-            messages: chunk,
+            messages: updateRequestChunk,
           },
           { responseType: onStreamCallback ? 'stream' : 'json' }
         );
