@@ -176,7 +176,7 @@ export class YandexGPTProvider implements IProvider {
 
               const lines = chunk.toString('utf8').split('\n');
               lines
-                .filter(line => line.trim()) // Пропускаем пустые строки
+                .filter(line => line.trim())
                 .forEach(line => {
                   try {
                     const parsedChunk = JSON.parse(line.trim());
@@ -185,7 +185,7 @@ export class YandexGPTProvider implements IProvider {
 
                     if (textChunk) {
                       onStreamCallback(textChunk);
-                      fullResponse += textChunk;
+                      fullResponse = textChunk;
                     }
 
                     if (status === 'ALTERNATIVE_STATUS_FINAL') {
