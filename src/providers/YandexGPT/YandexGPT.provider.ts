@@ -95,7 +95,7 @@ export class YandexGPTProvider implements IProvider {
           }))
         : request;
 
-      const { data } = await this.network.post(
+      const response = await this.network.post(
         '/completion',
         {
           modelUri: gptModel,
@@ -110,35 +110,55 @@ export class YandexGPTProvider implements IProvider {
       );
 
       if (onStreamCallback) {
-        let fullResponse = '';
+        return new Promise((resolve, reject) => {
+          let fullResponse = '';
 
-        data.on('data', (chunk: Buffer) => {
-          const lines = chunk.toString('utf8').split('\n');
+          response.data.on('data', (chunk: Buffer) => {
+            const lines = chunk.toString('utf8').split('\n');
 
-          for (const line of lines) {
-            if (line.trim().startsWith('data: ')) {
+            for (const line of lines) {
+              if (!line.trim().startsWith('data: ')) continue;
+
               const content = line.replace('data: ', '').trim();
-              if (content === '[DONE]') {
-                onStreamCallback('[DONE]');
-                return;
-              }
+              if (!content) continue;
+
               try {
                 const parsedChunk = JSON.parse(content);
                 const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
-                onStreamCallback(textChunk);
-                fullResponse += textChunk;
+                const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
+
+                if (textChunk) {
+                  onStreamCallback(textChunk);
+                  fullResponse += textChunk;
+                }
+
+                if (status === 'ALTERNATIVE_STATUS_FINAL') {
+                  resolve({
+                    role: GPTRoles.ASSISTANT,
+                    content: fullResponse,
+                  });
+                }
               } catch (error) {
-                console.error('Ошибка парсинга стриминга:', error);
+                console.error('Ошибка парсинга чанка:', error);
               }
             }
-          }
-        });
+          });
 
-        return;
+          response.data.on('end', () => {
+            resolve({
+              role: GPTRoles.ASSISTANT,
+              content: fullResponse,
+            });
+          });
+
+          response.data.on('error', (err: Error) => {
+            reject(`Stream error: ${err.message}`);
+          });
+        });
       } else {
         return {
-          role: data.result.alternatives[0].message.role,
-          content: data.result.alternatives[0].message.text,
+          role: response.data.result.alternatives[0].message.role,
+          content: response.data.result.alternatives[0].message.text,
         };
       }
     } catch (e) {
