@@ -74,7 +74,8 @@ export class YandexGPTProvider implements IProvider {
 
   async completion(
       request: GPTRequest,
-      onStreamCallback?: (chunk: string) => void
+      onStreamCallback?: (chunk: string) => void,
+      shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
     try {
       if (!this.accessToken) {
@@ -86,78 +87,137 @@ export class YandexGPTProvider implements IProvider {
 
       const gptModel = `gpt://${this.config.folderIdentifier}/yandexgpt/latest`;
       const requestTemperature = Math.min(1, Math.max(0, this.config.temperature));
+      const maxTokens = 2048;
+      const overlap = 200;
+      const tokenizer = encoding_for_model('gpt-4o');
 
-      const updateRequest = Array.isArray(request)
-          ? request.map(message => ({ role: message.role, text: message.content }))
-          : request;
+      const messages: GPTMessageEntity[] =
+          typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
 
-      const response = await this.network.post(
-          '/completion',
-          {
-            modelUri: gptModel,
-            completionOptions: {
-              stream: !!onStreamCallback,
-              temperature: requestTemperature,
-              maxTokens: this.config.maxTokensCount,
+      const extractText = (
+          content: string | GPTContentOfMessage | GPTContentOfMessage[]
+      ): string => {
+        if (typeof content === 'string') return content;
+        if (Array.isArray(content)) return content.map(extractText).join(' ');
+        if ('type' in content && content.type === 'text' && content.text) return content.text;
+        return '';
+      };
+
+      const chunks: GPTMessageEntity[][] = [];
+      let currentChunk: GPTMessageEntity[] = [];
+      let tokenCount = 0;
+
+      for (const message of messages) {
+        if (
+            typeof message.content !== 'string' &&
+            !Array.isArray(message.content) &&
+            'type' in message.content &&
+            (message.content.type === 'image_url' || message.content.type === 'input_audio')
+        ) {
+          currentChunk.push(message);
+          continue;
+        }
+
+        const textContent = extractText(message.content);
+        const tokens = tokenizer.encode(textContent);
+
+        if (tokenCount + tokens.length > maxTokens) {
+          if (currentChunk.length) chunks.push([...currentChunk]);
+          currentChunk = currentChunk.slice(-overlap);
+          tokenCount = tokenizer.encode(
+              currentChunk.map(m => extractText(m.content)).join(' ')
+          ).length;
+        }
+
+        currentChunk.push(message);
+        tokenCount += tokens.length;
+      }
+
+      if (currentChunk.length) chunks.push(currentChunk);
+
+      if (chunks.length === 0) {
+        chunks.push([{ role: GPTRoles.USER, content: ' ' }]);
+      }
+
+      let fullResponse = '';
+      const processChunk = async (chunk: GPTMessageEntity[]) => {
+        if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
+
+        const updateRequestChunk = Array.isArray(chunk)
+            ? chunk.map(message => ({
+              role: message.role,
+              text: message.content,
+            }))
+            : chunk;
+
+        const { data } = await this.network.post(
+            '/completion',
+            {
+              modelUri: gptModel,
+              completionOptions: {
+                stream: !!onStreamCallback,
+                temperature: requestTemperature,
+                maxTokens: this.config.maxTokensCount,
+              },
+              messages: updateRequestChunk,
             },
-            messages: updateRequest,
-          },
-          { responseType: onStreamCallback ? 'stream' : 'json' }
-      );
+            { responseType: onStreamCallback ? 'stream' : 'json' }
+        );
 
-      if (onStreamCallback) {
-        return new Promise((resolve, reject) => {
-          let fullResponse = '';
-
-          response.data.on('data', (chunk: Buffer) => {
-            const lines = chunk.toString('utf8').split('\n');
-            console.log('Полученные строки:', lines);
-
-            for (const line of lines) {
-              const trimmedLine = line.trim();
-              if (!trimmedLine) continue; // Пропускаем пустые строки
-
-              try {
-                const parsedChunk = JSON.parse(trimmedLine);
-                const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
-                const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
-
-                if (textChunk) {
-                  onStreamCallback(textChunk);
-                  fullResponse += textChunk;
-                  console.log('Текущий fullResponse:', fullResponse);
-                }
-
-                if (status === 'ALTERNATIVE_STATUS_FINAL') {
-                  resolve({
-                    role: GPTRoles.ASSISTANT,
-                    content: fullResponse,
-                  });
-                }
-              } catch (error) {
-                console.error('Ошибка парсинга строки:', error, 'Строка:', trimmedLine);
+        if (onStreamCallback) {
+          return new Promise((resolve, reject) => {
+            data.on('data', (chunk: Buffer) => {
+              if (shouldAbort?.()) {
+                onStreamCallback('[DONE]');
+                data.destroy();
+                resolve();
+                return;
               }
-            }
-          });
 
-          response.data.on('end', () => {
-            console.log('Стрим завершен, итоговый fullResponse:', fullResponse);
-            resolve({
-              role: GPTRoles.ASSISTANT,
-              content: fullResponse || 'Ответ не был сформирован',
+              const lines = chunk.toString('utf8').split('\n');
+              lines
+                  .filter(line => line.trim()) // Пропускаем пустые строки
+                  .forEach(line => {
+                    try {
+                      const parsedChunk = JSON.parse(line.trim());
+                      const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
+                      const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
+
+                      if (textChunk) {
+                        onStreamCallback(textChunk);
+                        fullResponse += textChunk;
+                      }
+
+                      if (status === 'ALTERNATIVE_STATUS_FINAL') {
+                        resolve();
+                      }
+                    } catch (error) {
+                      console.error('Ошибка парсинга строки:', error, 'Строка:', line);
+                    }
+                  });
+            });
+
+            data.on('end', () => {
+              console.log('Стрим завершен для чанка, fullResponse:', fullResponse);
+              resolve();
+            });
+
+            data.on('error', (err: Error) => {
+              reject(`Stream error: ${err.message}`);
             });
           });
+        } else {
+          fullResponse += data.result.alternatives[0].message.text;
+        }
+      };
 
-          response.data.on('error', (err: Error) => {
-            reject(`Stream error: ${err.message}`);
-          });
-        });
+      if (onStreamCallback) {
+        for (const chunk of chunks) await processChunk(chunk);
       } else {
-        return {
-          role: response.data.result.alternatives[0].message.role,
-          content: response.data.result.alternatives[0].message.text,
-        };
+        await Promise.all(chunks.map(processChunk));
       }
+
+      return onStreamCallback ? undefined : { role: GPTRoles.ASSISTANT, content: fullResponse };
     } catch (e) {
       console.log(`Generating message error: ${e}`);
       return `Generating message abort with error: ${JSON.stringify(e)}`;
