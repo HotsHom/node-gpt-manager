@@ -1,6 +1,6 @@
 {
   "name": "node-gpt-manager",
-  "version": "0.0.60",
+  "version": "0.0.61",
   "description": "Node.js library for integrating with Russian-language GPT models, providing seamless interaction from your application or web service. Ideal for content creation, text analysis, and other NLP tasks.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

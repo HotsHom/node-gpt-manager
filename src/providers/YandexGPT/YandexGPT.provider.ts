@@ -120,7 +120,7 @@ export class YandexGPTProvider implements IProvider {
               if (!line.trim().startsWith('data: ')) continue;
 
               const content = line.replace('data: ', '').trim();
-              if (!content) continue;
+              if (!content || content === '[DONE]') continue;
 
               try {
                 const parsedChunk = JSON.parse(content);
@@ -145,6 +145,7 @@ export class YandexGPTProvider implements IProvider {
           });
 
           response.data.on('end', () => {
+            console.log('response.data.on.end fullResponse', fullResponse);
             resolve({
               role: GPTRoles.ASSISTANT,
               content: fullResponse,
