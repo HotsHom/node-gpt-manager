@@ -73,9 +73,9 @@ export class YandexGPTProvider implements IProvider {
   }
 
   async completion(
-      request: GPTRequest,
-      onStreamCallback?: (chunk: string) => void,
-      shouldAbort?: () => boolean
+    request: GPTRequest,
+    onStreamCallback?: (chunk: string) => void,
+    shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | void> {
     try {
       if (!this.accessToken) {
@@ -92,10 +92,10 @@ export class YandexGPTProvider implements IProvider {
       const tokenizer = encoding_for_model('gpt-4o');
 
       const messages: GPTMessageEntity[] =
-          typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
+        typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
 
       const extractText = (
-          content: string | GPTContentOfMessage | GPTContentOfMessage[]
+        content: string | GPTContentOfMessage | GPTContentOfMessage[]
       ): string => {
         if (typeof content === 'string') return content;
         if (Array.isArray(content)) return content.map(extractText).join(' ');
@@ -109,10 +109,10 @@ export class YandexGPTProvider implements IProvider {
 
       for (const message of messages) {
         if (
-            typeof message.content !== 'string' &&
-            !Array.isArray(message.content) &&
-            'type' in message.content &&
-            (message.content.type === 'image_url' || message.content.type === 'input_audio')
+          typeof message.content !== 'string' &&
+          !Array.isArray(message.content) &&
+          'type' in message.content &&
+          (message.content.type === 'image_url' || message.content.type === 'input_audio')
         ) {
           currentChunk.push(message);
           continue;
@@ -125,7 +125,7 @@ export class YandexGPTProvider implements IProvider {
           if (currentChunk.length) chunks.push([...currentChunk]);
           currentChunk = currentChunk.slice(-overlap);
           tokenCount = tokenizer.encode(
-              currentChunk.map(m => extractText(m.content)).join(' ')
+            currentChunk.map(m => extractText(m.content)).join(' ')
           ).length;
         }
 
@@ -144,28 +144,28 @@ export class YandexGPTProvider implements IProvider {
         if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
 
         const updateRequestChunk = Array.isArray(chunk)
-            ? chunk.map(message => ({
+          ? chunk.map(message => ({
               role: message.role,
               text: message.content,
             }))
-            : chunk;
+          : chunk;
 
         const { data } = await this.network.post(
-            '/completion',
-            {
-              modelUri: gptModel,
-              completionOptions: {
-                stream: !!onStreamCallback,
-                temperature: requestTemperature,
-                maxTokens: this.config.maxTokensCount,
-              },
-              messages: updateRequestChunk,
+          '/completion',
+          {
+            modelUri: gptModel,
+            completionOptions: {
+              stream: !!onStreamCallback,
+              temperature: requestTemperature,
+              maxTokens: this.config.maxTokensCount,
             },
-            { responseType: onStreamCallback ? 'stream' : 'json' }
+            messages: updateRequestChunk,
+          },
+          { responseType: onStreamCallback ? 'stream' : 'json' }
         );
 
         if (onStreamCallback) {
-          return new Promise((resolve, reject) => {
+          return new Promise<void>((resolve, reject) => {
             data.on('data', (chunk: Buffer) => {
               if (shouldAbort?.()) {
                 onStreamCallback('[DONE]');
@@ -176,25 +176,25 @@ export class YandexGPTProvider implements IProvider {
 
               const lines = chunk.toString('utf8').split('\n');
               lines
-                  .filter(line => line.trim()) // Пропускаем пустые строки
-                  .forEach(line => {
-                    try {
-                      const parsedChunk = JSON.parse(line.trim());
-                      const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
-                      const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
+                .filter(line => line.trim()) // Пропускаем пустые строки
+                .forEach(line => {
+                  try {
+                    const parsedChunk = JSON.parse(line.trim());
+                    const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
+                    const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
 
-                      if (textChunk) {
-                        onStreamCallback(textChunk);
-                        fullResponse += textChunk;
-                      }
-
-                      if (status === 'ALTERNATIVE_STATUS_FINAL') {
-                        resolve();
-                      }
-                    } catch (error) {
-                      console.error('Ошибка парсинга строки:', error, 'Строка:', line);
+                    if (textChunk) {
+                      onStreamCallback(textChunk);
+                      fullResponse += textChunk;
                     }
-                  });
+
+                    if (status === 'ALTERNATIVE_STATUS_FINAL') {
+                      resolve();
+                    }
+                  } catch (error) {
+                    console.error('Ошибка парсинга строки:', error, 'Строка:', line);
+                  }
+                });
             });
 
             data.on('end', () => {
