@@ -73,14 +73,13 @@ export class YandexGPTProvider implements IProvider {
   }
 
   async completion(
-    request: GPTRequest,
-    onStreamCallback?: (chunk: string) => void
+      request: GPTRequest,
+      onStreamCallback?: (chunk: string) => void
   ): Promise<GPTMessageEntity | string | void> {
     try {
       if (!this.accessToken) {
         throw new Error('AccessToken is not initialized, call authenticate() first');
       }
-
       if (!this.network) {
         throw new Error('Network is not initialized, call authenticate() first');
       }
@@ -89,24 +88,21 @@ export class YandexGPTProvider implements IProvider {
       const requestTemperature = Math.min(1, Math.max(0, this.config.temperature));
 
       const updateRequest = Array.isArray(request)
-        ? request.map(message => ({
-            role: message.role,
-            text: message.content,
-          }))
-        : request;
+          ? request.map(message => ({ role: message.role, text: message.content }))
+          : request;
 
       const response = await this.network.post(
-        '/completion',
-        {
-          modelUri: gptModel,
-          completionOptions: {
-            stream: !!onStreamCallback,
-            temperature: requestTemperature,
-            maxTokens: this.config.maxTokensCount,
+          '/completion',
+          {
+            modelUri: gptModel,
+            completionOptions: {
+              stream: !!onStreamCallback,
+              temperature: requestTemperature,
+              maxTokens: this.config.maxTokensCount,
+            },
+            messages: updateRequest,
           },
-          messages: updateRequest,
-        },
-        { responseType: onStreamCallback ? 'stream' : 'json' }
+          { responseType: onStreamCallback ? 'stream' : 'json' }
       );
 
       if (onStreamCallback) {
@@ -115,21 +111,21 @@ export class YandexGPTProvider implements IProvider {
 
           response.data.on('data', (chunk: Buffer) => {
             const lines = chunk.toString('utf8').split('\n');
+            console.log('Полученные строки:', lines);
 
             for (const line of lines) {
-              if (!line.trim().startsWith('data: ')) continue;
-
-              const content = line.replace('data: ', '').trim();
-              if (!content || content === '[DONE]') continue;
+              const trimmedLine = line.trim();
+              if (!trimmedLine) continue; // Пропускаем пустые строки
 
               try {
-                const parsedChunk = JSON.parse(content);
+                const parsedChunk = JSON.parse(trimmedLine);
                 const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
                 const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
 
                 if (textChunk) {
                   onStreamCallback(textChunk);
                   fullResponse += textChunk;
+                  console.log('Текущий fullResponse:', fullResponse);
                 }
 
                 if (status === 'ALTERNATIVE_STATUS_FINAL') {
@@ -139,16 +135,16 @@ export class YandexGPTProvider implements IProvider {
                   });
                 }
               } catch (error) {
-                console.error('Ошибка парсинга чанка:', error);
+                console.error('Ошибка парсинга строки:', error, 'Строка:', trimmedLine);
               }
             }
           });
 
           response.data.on('end', () => {
-            console.log('response.data.on.end fullResponse', fullResponse);
+            console.log('Стрим завершен, итоговый fullResponse:', fullResponse);
             resolve({
               role: GPTRoles.ASSISTANT,
-              content: fullResponse,
+              content: fullResponse || 'Ответ не был сформирован',
             });
           });
 
