@@ -1,11 +1,12 @@
 import { IProvider } from '../IProvider.interface';
 import { BaseGPTConfig } from '../../types/GPTConfig';
-import { GPTContentOfMessage, GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
+import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
 import { isOpenAIConfig, OpenAIConfig } from './types';
 import axios, { AxiosInstance } from 'axios';
-import { encoding_for_model, TiktokenModel } from 'tiktoken';
+import { TiktokenModel } from 'tiktoken';
 import { GPTRoles } from '../../constants/GPTRoles';
 import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
+import { chunkMessages } from '../../helpers/chunk.helper';
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
@@ -55,57 +56,14 @@ export class OpenAIProvider implements IProvider {
     try {
       if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
 
-      const maxTokens = 2048;
-      const overlap = 200;
-      const tokenizer = encoding_for_model((this.config.model as TiktokenModel) ?? 'gpt-4o');
-
       const messages: GPTMessageEntity[] =
         typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
 
-      const extractText = (
-        content: string | GPTContentOfMessage | GPTContentOfMessage[]
-      ): string => {
-        if (typeof content === 'string') return content;
-        if (Array.isArray(content)) return content.map(extractText).join(' ');
-        if ('type' in content && content.type === 'text' && content.text) return content.text;
-        return '';
-      };
-
-      const chunks: GPTMessageEntity[][] = [];
-      let currentChunk: GPTMessageEntity[] = [];
-      let tokenCount = 0;
-
-      for (const message of messages) {
-        if (
-          typeof message.content !== 'string' &&
-          !Array.isArray(message.content) &&
-          'type' in message.content &&
-          (message.content.type === 'image_url' || message.content.type === 'input_audio')
-        ) {
-          currentChunk.push(message);
-          continue;
-        }
-
-        const textContent = extractText(message.content);
-        const tokens = tokenizer.encode(textContent);
-
-        if (tokenCount + tokens.length > maxTokens) {
-          if (currentChunk.length) chunks.push([...currentChunk]);
-          currentChunk = currentChunk.slice(-overlap);
-          tokenCount = tokenizer.encode(
-            currentChunk.map(m => extractText(m.content)).join(' ')
-          ).length;
-        }
-
-        currentChunk.push(message);
-        tokenCount += tokens.length;
-      }
-
-      if (currentChunk.length) chunks.push(currentChunk);
-
-      if (chunks.length === 0) {
-        chunks.push([{ role: GPTRoles.USER, content: ' ' }]);
-      }
+      const chunks = chunkMessages(messages, {
+        maxTokens: 2048,
+        overlap: 200,
+        model: (this.config.model as TiktokenModel) ?? 'gpt-4o',
+      });
 
       let fullResponse = '';
 
