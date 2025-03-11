@@ -63,3 +63,5 @@ export * as GigaChatProviderTypes from './providers/GigaChat/types'
 
 export { OpenAIProvider } from './providers/OpenAI/OpenAI.provider'
 export * as OpenAIProviderTypes from './providers/OpenAI/types'
+
+export { GrokAIProvider } from './providers/grok/GrokAI.provider';
