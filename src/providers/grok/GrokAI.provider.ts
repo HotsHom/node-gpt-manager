@@ -62,7 +62,7 @@ export class GrokAIProvider implements IProvider {
       const chunks = chunkMessages(messages, {
         maxTokens: 2048,
         overlap: 200,
-        model: (this.config.model as TiktokenModel) ?? 'gpt-4o',
+        model: 'gpt-4o',
       });
 
       let fullResponse = '';
