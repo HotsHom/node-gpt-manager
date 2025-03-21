@@ -7,6 +7,7 @@ import { TiktokenModel } from 'tiktoken';
 import { GPTRoles } from '../../constants/GPTRoles';
 import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
 import { chunkMessages } from '../../helpers/chunk.helper';
+import {TokenService} from "../../services/tokenService";
 
 export class OpenAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
@@ -39,6 +40,9 @@ export class OpenAIProvider implements IProvider {
         },
       });
       const { data } = await this.network.get('/models');
+
+      TokenService.getTokenService().setToken(this.config.openAiApiKey, 'openAi');
+
       return !!data.object;
     } catch (error) {
       console.error(

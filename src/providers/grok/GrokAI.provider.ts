@@ -1,12 +1,14 @@
-import {IProvider} from "../IProvider.interface";
-import {isOpenAIConfig, OpenAIConfig} from "../OpenAI/types";
-import axios, {AxiosInstance} from "axios";
-import {BaseGPTConfig} from "../../types/GPTConfig";
-import {GPTMessageEntity, GPTRequest} from "../../types/GPTRequestTypes";
-import {GPTRoles} from "../../constants/GPTRoles";
-import {chunkMessages} from "../../helpers/chunk.helper";
-import {TiktokenModel} from "tiktoken";
-import {hasInputAudio} from "../../helpers/hasInputAudio.helper";
+import { IProvider } from '../IProvider.interface';
+import { isOpenAIConfig, OpenAIConfig } from '../OpenAI/types';
+import axios, { AxiosInstance } from 'axios';
+import { BaseGPTConfig } from '../../types/GPTConfig';
+import { GPTMessageEntity, GPTRequest } from '../../types/GPTRequestTypes';
+import { GPTRoles } from '../../constants/GPTRoles';
+import { chunkMessages } from '../../helpers/chunk.helper';
+import { TiktokenModel } from 'tiktoken';
+import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
+import { TokenService } from '../../services/tokenService';
+import { TranscribeAudioService } from '../../services/transcribeAudioService';
 
 export class GrokAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
@@ -39,6 +41,9 @@ export class GrokAIProvider implements IProvider {
         },
       });
       const { data } = await this.network.get('/models');
+
+      TokenService.getTokenService().setToken(this.config.openAiApiKey, 'grok');
+
       return !!data.object;
     } catch (error) {
       console.error(
@@ -58,6 +63,24 @@ export class GrokAIProvider implements IProvider {
 
       const messages: GPTMessageEntity[] =
         typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
+
+      const yandexToken = TokenService.getTokenService().getTokenByType('yandex');
+
+      if (hasInputAudio(request) && yandexToken) {
+        const audioText = await TranscribeAudioService.getService().findAndTranscribeAudio(
+          messages,
+          yandexToken
+        );
+
+        if (audioText) {
+          messages[audioText.index].content = {
+            type: 'text',
+            text: audioText.transcriptionText,
+            input_audio: undefined,
+            image_url: undefined,
+          };
+        }
+      }
 
       const chunks = chunkMessages(messages, {
         maxTokens: 2048,

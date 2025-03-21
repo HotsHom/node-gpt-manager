@@ -8,6 +8,9 @@ import axios, { AxiosInstance } from 'axios';
 import * as fs from 'fs';
 import { GPTRoles } from '../../constants/GPTRoles';
 import { chunkMessages } from '../../helpers/chunk.helper';
+import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
+import { TokenService } from '../../services/tokenService';
+import { TranscribeAudioService } from '../../services/transcribeAudioService';
 
 export class YandexGPTProvider implements IProvider {
   private readonly config: YandexGPTConfig;
@@ -56,6 +59,9 @@ export class YandexGPTProvider implements IProvider {
         jwt,
       });
       this.accessToken = response.data.iamToken;
+
+      if (this.accessToken) TokenService.getTokenService().setToken(this.accessToken, 'yandex');
+
       this.updateTokenTimer = setTimeout(
         () => {
           this.authenticate();
@@ -88,6 +94,24 @@ export class YandexGPTProvider implements IProvider {
 
       const messages: GPTMessageEntity[] =
         typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
+
+      const yandexToken = TokenService.getTokenService().getTokenByType('yandex');
+
+      if (hasInputAudio(request) && yandexToken) {
+        const audioText = await TranscribeAudioService.getService().findAndTranscribeAudio(
+          messages,
+          yandexToken
+        );
+
+        if (audioText) {
+          messages[audioText.index].content = {
+            type: 'text',
+            text: audioText.transcriptionText,
+            input_audio: undefined,
+            image_url: undefined,
+          };
+        }
+      }
 
       const chunks = chunkMessages(messages, {
         maxTokens: 2048,
