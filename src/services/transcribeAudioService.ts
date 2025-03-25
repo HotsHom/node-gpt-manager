@@ -33,6 +33,8 @@ export class TranscribeAudioService {
       const fileName = `audio/${dateStr}_${randomPart}`;
       const storageUrl = `https://storage.yandexcloud.net/afilado-speechkit/${encodeURI(fileName)}`;
 
+      console.log(`storageUrl ${storageUrl}`)
+
       await axios.put(storageUrl, buffer, {
         headers: {
           Authorization: `Bearer ${access_token}`,
