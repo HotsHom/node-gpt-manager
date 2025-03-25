@@ -19,28 +19,15 @@ export class TranscribeAudioService {
 
   async findAndTranscribeAudio(request: GPTMessageEntity[], access_token: string) {
     const audioMessage = this.getLastAudioMessage(request);
-    console.log(`audioMessage ${JSON.stringify(audioMessage?.content.input_audio)}`)
+    console.log(`audioMessage ${JSON.stringify(audioMessage?.content.input_audio)}`);
 
     if (!audioMessage || !audioMessage.content.input_audio?.data) {
       return undefined;
     }
 
     try {
-      const buffer = Buffer.from(audioMessage.content.input_audio.data, 'base64');
-      const date = new Date();
-      const dateStr = date.toISOString().replace(/:/g, '-').replace(/T/g, '_').replace(/Z/g, '');
-      const randomPart = Math.random().toString(36).substring(2);
-      const fileName = `audio_${dateStr}_${randomPart}`;
-      const storageUrl = `https://storage.yandexcloud.net/afilado-speechkit/${encodeURI(fileName)}`;
-
-      console.log(`storageUrl ${storageUrl}`)
-
-      await axios.put(storageUrl, buffer, {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-          'Content-Type': 'audio/wav',
-        },
-      });
+      const storageUrl = await this.uploadFile(audioMessage, access_token);
+      if (!storageUrl) return undefined;
 
       const response = await axios.post(
         'https://stt.api.cloud.yandex.net/stt/v3/recognizeFileAsync',
@@ -80,6 +67,38 @@ export class TranscribeAudioService {
     } catch (e) {
       console.error(`Error transcribe audio ${JSON.stringify(e)}`);
       throw new Error(`Failed transcribe audio with error: ${JSON.stringify(e)}`);
+    }
+  }
+
+  private async uploadFile(
+    audioMessage: { content: GPTContentOfMessage; index: number },
+    access_token: string
+  ) {
+    try {
+      if (!audioMessage || !audioMessage.content.input_audio?.data) {
+        return undefined;
+      }
+
+      const buffer = Buffer.from(audioMessage.content.input_audio.data, 'base64');
+      const date = new Date();
+      const dateStr = date.toISOString().replace(/:/g, '-').replace(/T/g, '_').replace(/Z/g, '');
+      const randomPart = Math.random().toString(36).substring(2);
+      const fileName = `audio_${dateStr}_${randomPart}`;
+      const storageUrl = `https://storage.yandexcloud.net/afilado-speechkit/${encodeURI(fileName)}`;
+
+      console.log(`storageUrl ${storageUrl}`);
+
+      await axios.put(storageUrl, buffer, {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'audio/wav',
+        },
+      });
+
+      return storageUrl;
+    } catch (e) {
+      console.error(`Error uploading: ${JSON.stringify(e.response?.data)}`);
+      throw new Error(`Failed to upload with error: ${JSON.stringify(e)}`);
     }
   }
 
