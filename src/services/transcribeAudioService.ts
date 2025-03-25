@@ -31,7 +31,7 @@ export class TranscribeAudioService {
       const dateStr = date.toISOString().replace(/:/g, '-').replace(/T/g, '_').replace(/Z/g, '');
       const randomPart = Math.random().toString(36).substring(2);
       const fileName = `audio/${dateStr}_${randomPart}`;
-      const storageUrl = `https://storage.yandexcloud.net/afiladoSpeechkit/${encodeURI(fileName)}`;
+      const storageUrl = `https://storage.yandexcloud.net/afilado-speechkit/${encodeURI(fileName)}`;
 
       await axios.put(storageUrl, buffer, {
         headers: {
