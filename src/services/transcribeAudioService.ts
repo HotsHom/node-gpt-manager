@@ -1,6 +1,5 @@
-import { GPTContentOfMessage, GPTMessageEntity, GPTRequest } from '../types/GPTRequestTypes';
+import { GPTContentOfMessage, GPTMessageEntity } from '../types/GPTRequestTypes';
 import axios from 'axios';
-import { waitUntilDone } from '../helpers/transcribeAudio';
 
 export class TranscribeAudioService {
   private readonly isTranscribeAudioServiceProcess: boolean = false;
