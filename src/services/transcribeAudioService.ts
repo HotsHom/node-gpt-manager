@@ -97,7 +97,7 @@ export class TranscribeAudioService {
 
       return storageUrl;
     } catch (e) {
-      console.error(`Error uploading: ${JSON.stringify(e.response?.data)}`);
+      console.error(`Error uploading: ${JSON.stringify(e)}`);
       throw new Error(`Failed to upload with error: ${JSON.stringify(e)}`);
     }
   }
