@@ -19,6 +19,7 @@ export class TranscribeAudioService {
 
   async findAndTranscribeAudio(request: GPTMessageEntity[], access_token: string) {
     const audioMessage = this.getLastAudioMessage(request);
+    console.log(`audioMessage ${JSON.stringify(audioMessage?.content.input_audio)}`)
 
     if (!audioMessage || !audioMessage.content.input_audio?.data) {
       return undefined;
