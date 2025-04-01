@@ -8,9 +8,8 @@ import axios, { AxiosInstance } from 'axios';
 import * as fs from 'fs';
 import { GPTRoles } from '../../constants/GPTRoles';
 import { chunkMessages } from '../../helpers/chunk.helper';
-import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
 import { TokenService } from '../../services/tokenService';
-import { TranscribeAudioService } from '../../services/transcribeAudioService';
+import { AudioService } from '../../services/audioService';
 
 export class YandexGPTProvider implements IProvider {
   private readonly config: YandexGPTConfig;
@@ -95,113 +94,124 @@ export class YandexGPTProvider implements IProvider {
       const messages: GPTMessageEntity[] =
         typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
 
-      const yandexToken = TokenService.getTokenService().getTokenByType('yandex');
+      const audioData = await AudioService.getService().sendAudioMessage(
+        messages,
+        onStreamCallback,
+        shouldAbort
+      );
 
-      if (hasInputAudio(request) && yandexToken) {
-        const audioText = await TranscribeAudioService.getService().findAndTranscribeAudio(
-          messages,
-          yandexToken
-        );
+      if (audioData && typeof audioData === 'string') {
+        return { role: GPTRoles.ASSISTANT, content: audioData };
+      } else {
+        const chunks = chunkMessages(messages, {
+          maxTokens: 2048,
+          overlap: 200,
+          model: 'gpt-4o',
+        });
 
-        if (audioText) {
-          messages[audioText.index].content = {
-            type: 'text',
-            text: audioText.transcriptionText,
-            input_audio: undefined,
-            image_url: undefined,
-          };
-        }
-      }
+        let fullResponse = '';
+        const processChunk = async (chunk: GPTMessageEntity[]) => {
+          if (!this.network)
+            throw new Error('Network is not initialized, call authenticate() first');
 
-      const chunks = chunkMessages(messages, {
-        maxTokens: 2048,
-        overlap: 200,
-        model: 'gpt-4o',
-      });
+          const updateRequestChunk = Array.isArray(chunk)
+            ? chunk.map(message => ({
+                role: message.role,
+                text: message.content,
+              }))
+            : chunk;
 
-      let fullResponse = '';
-      const processChunk = async (chunk: GPTMessageEntity[]) => {
-        if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
-
-        const updateRequestChunk = Array.isArray(chunk)
-          ? chunk.map(message => ({
-              role: message.role,
-              text: message.content,
-            }))
-          : chunk;
-
-        const { data } = await this.network.post(
-          '/completion',
-          {
-            modelUri: gptModel,
-            completionOptions: {
-              stream: !!onStreamCallback,
-              temperature: requestTemperature,
-              maxTokens: this.config.maxTokensCount,
+          const { data } = await this.network.post(
+            '/completion',
+            {
+              modelUri: gptModel,
+              completionOptions: {
+                stream: !!onStreamCallback,
+                temperature: requestTemperature,
+                maxTokens: this.config.maxTokensCount,
+              },
+              messages: updateRequestChunk,
             },
-            messages: updateRequestChunk,
-          },
-          { responseType: onStreamCallback ? 'stream' : 'json' }
-        );
+            { responseType: onStreamCallback ? 'stream' : 'json' }
+          );
+
+          if (onStreamCallback) {
+            return new Promise<void>((resolve, reject) => {
+              data.on('data', (chunk: Buffer) => {
+                if (shouldAbort?.()) {
+                  onStreamCallback('[DONE]');
+                  data.destroy();
+                  resolve();
+                  return;
+                }
+
+                const lines = chunk.toString('utf8').split('\n');
+                lines
+                  .filter(line => line.trim())
+                  .forEach(line => {
+                    try {
+                      const parsedChunk = JSON.parse(line.trim());
+                      const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
+                      const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
+
+                      if (textChunk) {
+                        const delta = textChunk.slice(fullResponse.length);
+                        if (delta) {
+                          onStreamCallback(delta);
+                        }
+                        fullResponse = textChunk;
+                      }
+
+                      if (status === 'ALTERNATIVE_STATUS_FINAL') {
+                        resolve();
+                      }
+                    } catch (error) {
+                      console.error('Ошибка парсинга строки:', error, 'Строка:', line);
+                    }
+                  });
+              });
+
+              data.on('end', () => {
+                console.log('Стрим завершен для чанка, fullResponse:', fullResponse);
+                onStreamCallback('[DONE]');
+                resolve();
+              });
+
+              data.on('error', (err: Error) => {
+                reject(`Stream error: ${err.message}`);
+              });
+            });
+          } else {
+            fullResponse += data.result.alternatives[0].message.text;
+          }
+        };
 
         if (onStreamCallback) {
-          return new Promise<void>((resolve, reject) => {
-            data.on('data', (chunk: Buffer) => {
-              if (shouldAbort?.()) {
-                onStreamCallback('[DONE]');
-                data.destroy();
-                resolve();
-                return;
-              }
-
-              const lines = chunk.toString('utf8').split('\n');
-              lines
-                .filter(line => line.trim())
-                .forEach(line => {
-                  try {
-                    const parsedChunk = JSON.parse(line.trim());
-                    const textChunk = parsedChunk?.result?.alternatives?.[0]?.message?.text || '';
-                    const status = parsedChunk?.result?.alternatives?.[0]?.status || '';
-
-                    if (textChunk) {
-                      const delta = textChunk.slice(fullResponse.length);
-                      if (delta) {
-                        onStreamCallback(delta);
-                      }
-                      fullResponse = textChunk;
-                    }
-
-                    if (status === 'ALTERNATIVE_STATUS_FINAL') {
-                      resolve();
-                    }
-                  } catch (error) {
-                    console.error('Ошибка парсинга строки:', error, 'Строка:', line);
-                  }
-                });
-            });
-
-            data.on('end', () => {
-              console.log('Стрим завершен для чанка, fullResponse:', fullResponse);
-              onStreamCallback('[DONE]');
-              resolve();
-            });
-
-            data.on('error', (err: Error) => {
-              reject(`Stream error: ${err.message}`);
-            });
-          });
+          for (const chunk of chunks) await processChunk(chunk);
         } else {
-          fullResponse += data.result.alternatives[0].message.text;
+          await Promise.all(chunks.map(processChunk));
         }
-      };
 
-      if (onStreamCallback) {
-        for (const chunk of chunks) await processChunk(chunk);
-      } else {
-        await Promise.all(chunks.map(processChunk));
+        return onStreamCallback ? undefined : { role: GPTRoles.ASSISTANT, content: fullResponse };
       }
 
-      return onStreamCallback ? undefined : { role: GPTRoles.ASSISTANT, content: fullResponse };
+      // const yandexToken = TokenService.getTokenService().getTokenByType('yandex');
+      //
+      // if (hasInputAudio(request) && yandexToken) {
+      //   const audioText = await AudioService.getService().findAndTranscribeAudio(
+      //     messages,
+      //     yandexToken
+      //   );
+      //
+      //   if (audioText) {
+      //     messages[audioText.index].content = {
+      //       type: 'text',
+      //       text: audioText.transcriptionText,
+      //       input_audio: undefined,
+      //       image_url: undefined,
+      //     };
+      //   }
+      // }
     } catch (e) {
       console.log(`Generating message error: ${e}`);
       return `Generating message abort with error: ${JSON.stringify(e)}`;

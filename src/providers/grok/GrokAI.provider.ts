@@ -8,7 +8,7 @@ import { chunkMessages } from '../../helpers/chunk.helper';
 import { TiktokenModel } from 'tiktoken';
 import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
 import { TokenService } from '../../services/tokenService';
-import { TranscribeAudioService } from '../../services/transcribeAudioService';
+import { AudioService } from '../../services/audioService';
 
 export class GrokAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
@@ -64,88 +64,98 @@ export class GrokAIProvider implements IProvider {
       const messages: GPTMessageEntity[] =
         typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
 
-      const yandexToken = TokenService.getTokenService().getTokenByType('yandex');
+      const audioData = await AudioService.getService().sendAudioMessage(
+        messages,
+        onStreamCallback,
+        shouldAbort
+      );
 
-      if (hasInputAudio(request) && yandexToken) {
-        const audioText = await TranscribeAudioService.getService().findAndTranscribeAudio(
-          messages,
-          yandexToken
-        );
+      if (audioData && typeof audioData === 'string') {
+        return { role: GPTRoles.ASSISTANT, content: audioData };
+      } else {
+        const chunks = chunkMessages(messages, {
+          maxTokens: 2048,
+          overlap: 200,
+          model: 'gpt-4o',
+        });
 
-        if (audioText) {
-          messages[audioText.index].content = {
-            type: 'text',
-            text: audioText.transcriptionText,
-            input_audio: undefined,
-            image_url: undefined,
-          };
-        }
-      }
+        let fullResponse = '';
 
-      const chunks = chunkMessages(messages, {
-        maxTokens: 2048,
-        overlap: 200,
-        model: 'gpt-4o',
-      });
+        const processChunk = async (chunk: GPTMessageEntity[]) => {
+          if (!this.network)
+            throw new Error('Network is not initialized, call authenticate() first');
 
-      let fullResponse = '';
+          console.log('[DEBUG] Отправка chunk в API:', JSON.stringify(chunk, null, 2));
 
-      const processChunk = async (chunk: GPTMessageEntity[]) => {
-        if (!this.network) throw new Error('Network is not initialized, call authenticate() first');
+          const { data } = await this.network.post(
+            '/chat/completions',
+            {
+              model: this.config.model ?? 'grok-2-latest',
+              messages: chunk,
+              stream: !!onStreamCallback,
+            },
+            { responseType: onStreamCallback ? 'stream' : 'json' }
+          );
 
-        console.log('[DEBUG] Отправка chunk в API:', JSON.stringify(chunk, null, 2));
+          if (onStreamCallback) {
+            data.on('data', (chunk: Buffer) => {
+              if (shouldAbort?.()) {
+                console.warn(`shouldAbort ${shouldAbort()}`);
+                onStreamCallback('[DONE]');
+                data.destroy();
+                return;
+              }
 
-        const { data } = await this.network.post(
-          '/chat/completions',
-          {
-            model: this.config.model ?? 'grok-2-latest',
-            messages: chunk,
-            stream: !!onStreamCallback,
-          },
-          { responseType: onStreamCallback ? 'stream' : 'json' }
-        );
+              chunk
+                .toString('utf8')
+                .split('\n')
+                .filter(line => line.trim().startsWith('data: '))
+                .forEach(line => {
+                  const content = line.replace('data: ', '');
+                  if (content === '[DONE]') {
+                    onStreamCallback('[DONE]');
+                    return;
+                  }
+
+                  try {
+                    const gptChunk = JSON.parse(content).choices[0].delta?.content || '';
+                    onStreamCallback(gptChunk);
+                    fullResponse += gptChunk;
+                  } catch (error) {
+                    console.error('Ошибка парсинга:', error);
+                  }
+                });
+            });
+          } else {
+            fullResponse += data.choices[0].message.content;
+          }
+        };
 
         if (onStreamCallback) {
-          data.on('data', (chunk: Buffer) => {
-            if (shouldAbort?.()) {
-              console.warn(`shouldAbort ${shouldAbort()}`);
-              onStreamCallback('[DONE]');
-              data.destroy();
-              return;
-            }
-
-            chunk
-              .toString('utf8')
-              .split('\n')
-              .filter(line => line.trim().startsWith('data: '))
-              .forEach(line => {
-                const content = line.replace('data: ', '');
-                if (content === '[DONE]') {
-                  onStreamCallback('[DONE]');
-                  return;
-                }
-
-                try {
-                  const gptChunk = JSON.parse(content).choices[0].delta?.content || '';
-                  onStreamCallback(gptChunk);
-                  fullResponse += gptChunk;
-                } catch (error) {
-                  console.error('Ошибка парсинга:', error);
-                }
-              });
-          });
+          for (const chunk of chunks) await processChunk(chunk);
         } else {
-          fullResponse += data.choices[0].message.content;
+          await Promise.all(chunks.map(processChunk));
         }
-      };
 
-      if (onStreamCallback) {
-        for (const chunk of chunks) await processChunk(chunk);
-      } else {
-        await Promise.all(chunks.map(processChunk));
+        return onStreamCallback ? undefined : { role: GPTRoles.ASSISTANT, content: fullResponse };
       }
-
-      return onStreamCallback ? undefined : { role: GPTRoles.ASSISTANT, content: fullResponse };
+      // const yandexToken = TokenService.getTokenService().getTokenByType('yandex');
+      //
+      // if (hasInputAudio(request) && yandexToken) {
+      //   const audioText = await AudioService.getService().findAndTranscribeAudio(
+      //     messages,
+      //     yandexToken
+      //   );
+      //
+      //   if (audioText) {
+      //     messages[audioText.index].content = {
+      //       type: 'text',
+      //       text: audioText.transcriptionText,
+      //       input_audio: undefined,
+      //       image_url: undefined,
+      //     };
+      //   }
+      // }
     } catch (e) {
       console.log('[Error][Completion]', e);
       return `Generating message aborted with error: ${JSON.stringify(e)}`;
