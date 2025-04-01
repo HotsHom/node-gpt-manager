@@ -25,12 +25,12 @@ export class AudioService {
   ): Promise<GPTMessageEntity | string | undefined> {
     const lastAudioMessage = this.getLastAudioMessage(messages);
     console.log(`lastAudioMessage ${JSON.stringify(lastAudioMessage)}`)
-    console.log(`messages[0] ${JSON.stringify(messages[0])}`)
+    console.log(`messages[0] ${JSON.stringify(messages[messages.length - 1])}`)
     const openAiToken = TokenService.getTokenService().getTokenByType('openAi');
 
     if (!openAiToken) throw new Error(`OpenAIToken is not initialized`);
 
-    if (lastAudioMessage && lastAudioMessage === messages[0]) {
+    if (lastAudioMessage && lastAudioMessage === messages[messages.length - 1]) {
       try {
         const { data } = await axios.post(
           'https://api.openai.com/v1/chat/completions',
