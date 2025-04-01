@@ -9,6 +9,7 @@ import { TiktokenModel } from 'tiktoken';
 import { hasInputAudio } from '../../helpers/hasInputAudio.helper';
 import { TokenService } from '../../services/tokenService';
 import { AudioService } from '../../services/audioService';
+import {OpenAIProvider} from "../OpenAI/OpenAI.provider";
 
 export class GrokAIProvider implements IProvider {
   private readonly config: OpenAIConfig;
@@ -64,14 +65,12 @@ export class GrokAIProvider implements IProvider {
       const messages: GPTMessageEntity[] =
         typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
 
-      const audioData = await AudioService.getService().sendAudioMessage(
-        messages,
-        onStreamCallback,
-        shouldAbort
-      );
-
-      if (audioData) {
-        return typeof audioData === 'string' ? { role: GPTRoles.ASSISTANT, content: audioData } : audioData;
+      if (hasInputAudio(request)) {
+        return await AudioService.getService().sendAudioMessage(
+          messages,
+          onStreamCallback,
+          shouldAbort
+        );
       } else {
         const chunks = chunkMessages(messages, {
           maxTokens: 2048,

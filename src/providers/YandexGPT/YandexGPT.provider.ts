@@ -10,6 +10,7 @@ import { GPTRoles } from '../../constants/GPTRoles';
 import { chunkMessages } from '../../helpers/chunk.helper';
 import { TokenService } from '../../services/tokenService';
 import { AudioService } from '../../services/audioService';
+import {hasInputAudio} from "../../helpers/hasInputAudio.helper";
 
 export class YandexGPTProvider implements IProvider {
   private readonly config: YandexGPTConfig;
@@ -94,14 +95,12 @@ export class YandexGPTProvider implements IProvider {
       const messages: GPTMessageEntity[] =
         typeof request === 'string' ? [{ role: GPTRoles.USER, content: request }] : request;
 
-      const audioData = await AudioService.getService().sendAudioMessage(
-        messages,
-        onStreamCallback,
-        shouldAbort
-      );
-
-      if (audioData) {
-        return typeof audioData === 'string' ? { role: GPTRoles.ASSISTANT, content: audioData } : audioData;
+      if (hasInputAudio(request)) {
+        return await AudioService.getService().sendAudioMessage(
+          messages,
+          onStreamCallback,
+          shouldAbort
+        );
       } else {
         const chunks = chunkMessages(messages, {
           maxTokens: 2048,

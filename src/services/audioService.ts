@@ -23,67 +23,62 @@ export class AudioService {
     onStreamCallback?: (chunk: string) => void,
     shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | undefined> {
-    const lastAudioMessage = this.getLastAudioMessage(messages);
-    console.log(`lastAudioMessage ${JSON.stringify(lastAudioMessage)}`)
-    console.log(`messages[0] ${JSON.stringify(messages[messages.length - 1])}`)
     const openAiToken = TokenService.getTokenService().getTokenByType('openAi');
 
     if (!openAiToken) throw new Error(`OpenAIToken is not initialized`);
 
-    if (lastAudioMessage && lastAudioMessage === messages[messages.length - 1]) {
-      try {
-        const { data } = await axios.post(
-          'https://api.openai.com/v1/chat/completions',
-          {
-            model: 'gpt-4o-audio-preview',
-            messages: lastAudioMessage,
-            stream: !!onStreamCallback,
+    try {
+      const { data } = await axios.post(
+        'https://api.openai.com/v1/chat/completions',
+        {
+          model: 'gpt-4o-audio-preview',
+          messages: messages,
+          stream: !!onStreamCallback,
+        },
+        {
+          responseType: onStreamCallback ? 'stream' : 'json',
+          headers: {
+            Authorization: `Bearer ${openAiToken}`,
+            'Content-Type': 'application/json',
           },
-          {
-            responseType: onStreamCallback ? 'stream' : 'json',
-            headers: {
-              Authorization: `Bearer ${openAiToken}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (onStreamCallback) {
-          data.on('data', (chunk: Buffer) => {
-            if (shouldAbort && shouldAbort()) {
-              console.warn(`shouldAbort ${shouldAbort()}`);
-              onStreamCallback('[DONE]');
-              data.destroy();
-            }
-
-            const lines = chunk
-              .toString('utf8')
-              .split('\n')
-              .filter(line => line.trim().startsWith('data: '));
-
-            for (const line of lines) {
-              const content = line.replace('data: ', '');
-              if (content === '[DONE]') {
-                onStreamCallback('[DONE]');
-                break;
-              }
-
-              try {
-                const parsed = JSON.parse(content);
-                const gptChunk = parsed.choices[0].delta?.content || '';
-                onStreamCallback(gptChunk);
-              } catch (error) {
-                console.error('Ошибка парсинга:', error);
-              }
-            }
-          });
-        } else {
-          return data.choices[0].message;
         }
-      } catch (e) {
-        console.log('[Error][Completion]', e);
-        return `Generating message abort with error: ${JSON.stringify(e)}`;
+      );
+
+      if (onStreamCallback) {
+        data.on('data', (chunk: Buffer) => {
+          if (shouldAbort && shouldAbort()) {
+            console.warn(`shouldAbort ${shouldAbort()}`);
+            onStreamCallback('[DONE]');
+            data.destroy();
+          }
+
+          const lines = chunk
+            .toString('utf8')
+            .split('\n')
+            .filter(line => line.trim().startsWith('data: '));
+
+          for (const line of lines) {
+            const content = line.replace('data: ', '');
+            if (content === '[DONE]') {
+              onStreamCallback('[DONE]');
+              break;
+            }
+
+            try {
+              const parsed = JSON.parse(content);
+              const gptChunk = parsed.choices[0].delta?.content || '';
+              onStreamCallback(gptChunk);
+            } catch (error) {
+              console.error('Ошибка парсинга:', error);
+            }
+          }
+        });
+      } else {
+        return data.choices[0].message;
       }
+    } catch (e) {
+      console.log('[Error][Completion]', e);
+      return `Generating message abort with error: ${JSON.stringify(e)}`;
     }
   }
 
