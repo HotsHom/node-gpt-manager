@@ -24,6 +24,8 @@ export class AudioService {
     shouldAbort?: () => boolean
   ): Promise<GPTMessageEntity | string | undefined> {
     const lastAudioMessage = this.getLastAudioMessage(messages);
+    console.log(`lastAudioMessage ${JSON.stringify(lastAudioMessage)}`)
+    console.log(`messages[0] ${JSON.stringify(messages[0])}`)
     const openAiToken = TokenService.getTokenService().getTokenByType('openAi');
 
     if (!openAiToken) throw new Error(`OpenAIToken is not initialized`);
