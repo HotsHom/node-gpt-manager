@@ -100,8 +100,8 @@ export class YandexGPTProvider implements IProvider {
         shouldAbort
       );
 
-      if (audioData && typeof audioData === 'string') {
-        return { role: GPTRoles.ASSISTANT, content: audioData };
+      if (audioData) {
+        return typeof audioData === 'string' ? { role: GPTRoles.ASSISTANT, content: audioData } : audioData;
       } else {
         const chunks = chunkMessages(messages, {
           maxTokens: 2048,
